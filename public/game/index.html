@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta property="og:image" content="https://thefilterfeed.netlify.app/.netlify/og-image/ddecab24150fdadd9417b8b117612819.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Filter Feed — aquarium</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -69,30 +73,31 @@
 
 <script>
 const SPRITE = [
-'......................oo......................',
-'.....................ofdo.....................',
-'....................ofdffo....................',
-'...................ofdfdfo....................',
-'..................ofdffdffo...................',
-'.................ofdfdfffdo...................',
-'oo..............oofdffdfffoo..................',
-'odo......oo...oottdtdttdtddoooo...............',
-'ofdo....ofo.ootttdddtttddtttcddoo.............',
-'odffo..ofdoootdtttdtttddtttcctdddoo...........',
-'.ofdfooddddtttdddttttdttcccttdgdggoo..........',
-'..odfddtttttdttttddtttcccttddgdgtggdoo........',
-'...odddtttdddddttdddddttddddggdgggdeegoo......',
-'...odtddddddddddddddddddddgggdgggdeheeggoo....',
-'..odfdtdddttcccccccccttdddggdggggdeeeegdgdoo..',
-'.odfddddwcwccwwcwwcwwwwwwwwwwwgggdgddgggggggo.',
-'odfdooodwwwwwwwwwwwwwwwwwwwwwwwwwwwwggggggoo..',
-'ofdo..oofoooowwwwwwwwwwwwwwwwwwwwwwwwwwwoo1o1.',
-'odo...ofo...offooooowwwwwwwwooooooffoooo.1..1.',
-'oo....oo....odfo....ooooooooofdfo..ofdo.1.....',
-'.............oo.............offo...offo.......',
-'.............................oo.....oo........'];
+'......................FF......................',
+'.....................FfDF.....................',
+'....................FfDffF....................',
+'...................FfDfDfF....................',
+'..................FfDffDffF...................',
+'.................FfDfDfffDF...................',
+'FF..............SSfDffDfffSS..................',
+'FfF......FF...SSLLHHHHHHLLLSSSS...............',
+'FffF....FfF.SSLLLdddLLLdddLLHHHSS.............',
+'FffDF..FfFSSSdLLLdddLLLLdddLLYYYySS...........',
+'.FfDfSSttttdddtttdddtttdddtttYYYYYYSS.........',
+'..FfDftttttdddtttDDDtttDDDttgggYYYggSS........',
+'...FddddddtdddtttdddtttdddttGgggDgggheYSS.....',
+'...FDDDDDDDtDDDtDDDDDtDDDDGggggDggeeeeggSS....',
+'..FDfFttccccccccccccccctttGGgggDggeeeeggggSS..',
+'.FfDtttcWWWWWWWWWWWWWWWWWWWWWWGGGGDGGGGggggYO.',
+'FfDfOOOcwwwwwwwwwwwwwwwwwwwwwwwwwwwwGGGGGGOO..',
+'FfDF..FFfOOOOwwwwwwwwwwwwwwwwwwwwwwwwwwwOObOb.',
+'FDF...FfF...FffOOOOOwwwwwwwwOOOOOOffFOOO.b..b.',
+'FF....FF....FfDF....OOOOOOOOOfDfF..FfDF.b.....',
+'.............FF.............FffF...FffF.......',
+'.............................FF.....FF........'];
 const SW = SPRITE[0].length, SH = SPRITE.length;
-const CMAP = {'.':0,'o':1,'d':2,'t':3,'c':4,'g':5,'w':6,'f':7,'e':8,'h':9,'1':10};
+// art follows Derek Yu's pixel art basics: one light source above, hue-shifted ramps, selective outlines, no translucency
+const CMAP = {'.':0,'O':1,'S':2,'T':3,'t':4,'L':5,'H':6,'d':7,'D':8,'c':9,'C':10,'W':11,'w':12,'G':13,'g':14,'Y':15,'y':16,'F':17,'f':18,'e':19,'h':20,'b':21};
 
 // cherry barb (Puntius titteya); one sprite, two palettes in the shader: red male, tan female
 const BARB = [
@@ -117,25 +122,25 @@ const BCMAP = {'.':0,'o':1,'d':2,'b':3,'l':4,'s':5,'f':6,'a':7,'e':8,'h':9,'k':1
 
 // cherry shrimp (Neocaridina davidi); one sprite, four color morphs in the shader
 const SHRIMP = [
-'..............aaaaaaaaaaaaaa............',
-'............aa..............aa..........',
-'...........a..................a.........',
-'.................ooooooooooooo.a........',
-'..............oooRRRRRRRRRRRRRoa.....oo.',
-'...........oooRRrRRRrRRRRppRRRRoooooo...',
-'.........ooRRrRRRrRRRrRRRpppRRRRRo......',
-'.......ooRRrRRRrRRRrRRRRRRpRRRReeo......',
-'......oRRrRRRrRRRrRRRRRRRRRRRRRheoaaaaaa',
-'.....oRRrRRRrRRRrRRRRRRRRRRRRRRRo.......',
-'.....oRRoRRrooRrooooRRRRRRRRRRRoaaa.....',
-'....oRRRooloolloo..ollollolloo....aaa...',
-'....oRRo.l..l.l....l.l..l.l..l..........',
-'...oRrRo.l..l.l...l..l..l..l..l.........',
-'..oRRrRRo.........l...l..l..l..l........',
-'.oRro.oRo...............................',
-'.oo....o................................'];
+'..............33333333333333............',
+'............33..............33..........',
+'...........3..................3.........',
+'.................1111111111111.3........',
+'..............11133344444443331.3...11..',
+'...........1113334222222222233111111....',
+'.........113342222122221222222233O......',
+'.......113342122212222122222222heO......',
+'......134222222222222222222222eeO333333.',
+'.....1342221222122212222222222222O......',
+'.....122OOOOOOOOOOOO11111111111O333.....',
+'....1222O.3..3..3..OOOOOOOOOOO....333...',
+'....122O..2..2..2..3.3..3.3..3..........',
+'...1221O...........2..2..2..2...........',
+'..132221O.........1...1..1..1...........',
+'.132O.12O...............................',
+'.OO....O................................'];
 const RW = SHRIMP[0].length, RH = SHRIMP.length;
-const RCMAP = {'.':0,'o':1,'R':2,'r':3,'p':4,'e':5,'h':6,'a':7,'l':8};
+const RCMAP = {'.':0,'O':1,'2':2,'1':3,'4':4,'e':5,'h':6,'3':8};
 
 // uniform layout, in vec4s: header (2), fish pairs, bubbles (48), food (24), fish angles (4 per vec4), lolly (2)
 const MAX_FISH = 20;
@@ -184,6 +189,9 @@ fn hash(p: vec2f) -> f32 {
   return fract((r.x + r.y) * r.x);
 }
 
+// quantise a tint amount to fixed 0.15 steps, dithered between neighbours
+fn qtint(x: f32, d: f32) -> f32 { return floor(x / 0.15 + d) * 0.15; }
+
 fn bayer(p: vec2i) -> f32 {
   var m = array<f32, 16>(0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.);
   return (m[(p.y & 3) * 4 + (p.x & 3)] + 0.5) / 16.0;
@@ -197,9 +205,11 @@ fn groundAt(x: f32, top: f32) -> f32 {
   return top + round(sin(x * 0.045) * 2.0 + sin(x * 0.13 + 1.0) * 1.0);
 }
 
+// corydoras: outline, selout brown, tan ramp, band ramp, cream/belly, gold head ramp, fins, eye, barbels
 fn fishPal(i: u32) -> vec3f {
-  var pal = array<u32, 11>(0x000000u, 0x1e1610u, 0x3a281cu, 0xc49e62u, 0xe8d4a0u,
-                           0xd28c3cu, 0xf0e8d0u, 0xaa9678u, 0x0f0a08u, 0xffffffu, 0x5a4632u);
+  var pal = array<u32, 22>(0x000000u, 0x1e140eu, 0x4a3222u, 0x7a5634u, 0xb88a54u, 0xd9b47au, 0xf2dca8u,
+                           0x4a3424u, 0x2a1c14u, 0xe6cf98u, 0xf6e6bcu, 0xf2ead2u, 0xd8c8a0u, 0x9a5a20u,
+                           0xd08a38u, 0xf0b458u, 0xffe09au, 0x5e4a36u, 0xae9672u, 0x0f0a08u, 0xffffffu, 0x8a6a48u);
   return hex(pal[i]);
 }
 
@@ -214,10 +224,11 @@ fn barbPal(i: u32, female: bool) -> vec3f {
 
 // species 3..6 = shrimp morphs: cherry red, orange sakura, blue dream, yellow
 fn shrimpPal(i: u32, v: i32) -> vec3f {
-  var red = array<u32, 9>(0u, 0x46100eu, 0xcd2a24u, 0x8c1616u, 0xfa967du, 0x0a0606u, 0xffffffu, 0xe17d69u, 0xeb785fu);
-  var ora = array<u32, 9>(0u, 0x4a2008u, 0xe8761eu, 0xb04e10u, 0xffc080u, 0x0a0606u, 0xffffffu, 0xf0a070u, 0xf09860u);
-  var blu = array<u32, 9>(0u, 0x0c1e3cu, 0x2c5cc8u, 0x1a3a8au, 0x8ab8ffu, 0x050608u, 0xffffffu, 0x7c9ee0u, 0x6c90d8u);
-  var yel = array<u32, 9>(0u, 0x4a3a08u, 0xe8c428u, 0xb08e14u, 0xfff09au, 0x0a0606u, 0xffffffu, 0xf0d878u, 0xe8cc60u);
+  // ramps per morph: outline, mid, shadow, highlight, eye, eye shine, (unused), light; shadows lean cool, lights warm
+  var red = array<u32, 9>(0u, 0x3b0f1au, 0xc42a2au, 0x7a1626u, 0xffb08au, 0x1a0a10u, 0xffffffu, 0u, 0xe8553au);
+  var ora = array<u32, 9>(0u, 0x3d1a10u, 0xe0701cu, 0x9a3c14u, 0xffd49au, 0x1a0a10u, 0xffffffu, 0u, 0xf59a3cu);
+  var blu = array<u32, 9>(0u, 0x101436u, 0x2f5ccau, 0x1f2a7au, 0xa8dcffu, 0x0a0a18u, 0xffffffu, 0u, 0x4f8ef0u);
+  var yel = array<u32, 9>(0u, 0x3a2a10u, 0xdcb42cu, 0x8e6a1cu, 0xfff4b0u, 0x1a1408u, 0xffffffu, 0u, 0xf2d85au);
   if (v == 1) { return hex(ora[i]); }
   if (v == 2) { return hex(blu[i]); }
   if (v == 3) { return hex(yel[i]); }
@@ -264,7 +275,7 @@ fn lollySample(pf: vec2f, deepc: vec3f) -> vec4f {
       result = vec4f(c, 1.0);
     }
   }
-  if (result.a > 0.0) { result = vec4f(mix(result.rgb, deepc, L0.w * 0.45), 1.0); }
+  if (result.a > 0.0) { result = vec4f(mix(result.rgb, deepc, qtint(L0.w * 0.45, bayer(vec2i(pf)))), 1.0); }
   return result;
 }
 
@@ -344,19 +355,13 @@ fn shrimpSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
   if (ly < 0 || ly >= RH) { return vec4f(0.0); }
   var idx = sprite[u32(ROFF + ly * RW + lx)];
   // walking legs and swimmerets paddle in alternating waves
-  if (ly >= 12 && lx >= 8 && lx <= 32) {
+  if (ly >= 12 && lx >= 9 && lx <= 32) {
     let step = select(1, -1, sin(f1.x + f32(lx) * 0.9) > 0.0);
-    let sx = clamp(lx + step * select(0, 1, ly >= 13), 0, RW - 1);
-    let alt = sprite[u32(ROFF + ly * RW + sx)];
-    if (idx == 8u || alt == 8u) { idx = alt; }
+    let sx = clamp(lx + step * select(0, 1, ly >= 13), 9, RW - 1);
+    idx = sprite[u32(ROFF + ly * RW + sx)];
   }
   if (idx == 0u) { return vec4f(0.0); }
-  let c = shrimpPal(idx, i32(round(f1.w)) - 3);
-  var a = 1.0;
-  if (idx == 7u) { a = 0.8; }
-  if (idx == 8u) { a = 0.85; }
-  if (idx == 2u || idx == 3u) { a = 0.94; }
-  return vec4f(c, a);
+  return vec4f(shrimpPal(idx, i32(round(f1.w)) - 3), 1.0);
 }
 
 fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
@@ -381,9 +386,8 @@ fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
   if (idx == 0u) { return vec4f(0.0); }
   var c = fishPal(idx);
   var a = 1.0;
-  if (idx == 7u) { a = 0.72; }
   // barbels twitch
-  if (idx == 10u && sin(t * 3.0 + f0.x) > 0.6) { return vec4f(0.0); }
+  if (idx == 21u && sin(t * 3.0 + f0.x) > 0.6) { return vec4f(0.0); }
   return vec4f(c, a);
 }
 
@@ -453,7 +457,7 @@ fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
     }
     let cv = sin(pf.x * 0.33 + t * 1.1 + sin(pf.y * 0.6 + t)) + sin(pf.y * 0.9 - t * 0.8 + pf.x * 0.12);
     if (cv > 1.3 + fz * 0.4) { sand = mix(sand, hex(0xf0e3b6u), 0.35); }
-    col = mix(sand, deep, (1.0 - fz) * 0.18);
+    col = mix(sand, deep, qtint((1.0 - fz) * 0.18, d));
 
     // fish shadows
     let nF = i32(S.b.x);
@@ -477,7 +481,7 @@ fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
     let o = pf - vec2f(round(fd.x), round(fd.y));
     if (o.x >= 0.0 && o.x <= 1.0 && o.y >= 0.0 && o.y <= 1.0) {
       var fc2 = select(hex(0x7a3c18u), hex(0xc8642au), o.x == 0.0 && o.y == 0.0);
-      col = mix(fc2, deep, fd.z * 0.45);
+      col = mix(fc2, deep, qtint(fd.z * 0.45, d));
     }
   }
 
@@ -494,7 +498,7 @@ fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
     }
     let s = fishSample(p, f0, f1, S.ang[i / 4][i % 4], t);
     if (s.a > 0.0) {
-      let fcl = mix(s.rgb, deep, f0.w * 0.5);
+      let fcl = mix(s.rgb, deep, qtint(f0.w * 0.5, d));
       col = mix(col, fcl, s.a);
     }
   }
