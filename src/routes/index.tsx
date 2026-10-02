@@ -46,15 +46,17 @@ function App() {
         </div>
 
         <div className="rise rise-3 mt-14">
-          <div className="pixel-frame bg-deep pxshadow p-6 sm:p-8">
-            <p className="m-0 font-pixel text-lg text-ink">
-              Tip: tap the water to drop food. The cherry barbs snap it up mid-water, the corys sift
-              the sand for whatever sinks, and the shrimp pick at it slowly. Use the fish buttons in the tank to choose who's swimming.
+          <div className="border-2 border-kelp/40 bg-deep/60 p-4 sm:p-5">
+            <p className="m-0 font-pixel text-sm leading-relaxed text-ink sm:text-base">
+              Tip: tap the water to drop food, and the fish will start eating it. The cherry barbs will
+              start eating mid-water, the corydoras will sift the sand for whatever sinks, and the shrimp
+              will be the slow boys picking at what's left, slowly. You can also toggle the fish buttons
+              to choose who is swimming.
             </p>
-            <p className="mt-2 mb-0 text-sm leading-relaxed text-inksoft">
-              The tank runs entirely on your GPU — every fish, plant, and bubble is drawn per-pixel
-              in a WebGPU shader. No WebGPU? The frame tells you why, and the field notes below are
-              the next best thing.
+            <p className="mt-2 mb-0 text-xs leading-relaxed text-inksoft">
+              The tank runs entirely on your GPU, drawn per-pixel in a WebGPU shader. If it doesn't
+              load, the frame will tell you why. You can also check my personal blog posts on
+              fishkeeping below!
             </p>
           </div>
         </div>

@@ -52,6 +52,13 @@
   #lolly:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
   #lolly[hidden] { display: none; }
   .snap .caption h1, .snap .caption p { display: none; }
+  /* "hide controls": tuck the caption, species toggles and lolly away behind one small button */
+  #calm { font: inherit; font-size: clamp(11px, 1.1vw, 13px); line-height: 1; color: var(--ink-soft); background: transparent; border: 2px solid var(--ink-soft);
+    padding: 4px 8px; margin-top: 10px; cursor: pointer; pointer-events: auto; text-shadow: none; opacity: 0.8; }
+  #calm:hover { opacity: 1; color: var(--ink); border-color: var(--ink); }
+  #calm:focus-visible { outline: 2px dashed var(--ink); outline-offset: 3px; }
+  .calm .caption h1, .calm .caption p, .calm .tank-ctl, .calm #lolly { display: none; }
+  .calm #calm { margin-top: 0; opacity: 0.55; }
   @media (max-width: 520px) { .caption { padding-left: 14px; } #lolly { right: 12px; bottom: 12px; } }
 </style>
 </head>
@@ -65,6 +72,7 @@
     <button type="button" data-species="barb" aria-pressed="true" title="Puntius titteya" style="--swatch: #c0102c"><span class="box"></span>Cherry barbs</button>
     <button type="button" data-species="shrimp" aria-pressed="true" title="Neocaridina davidi" style="--swatch: #cd2a24"><span class="box"></span>Cherry shrimp</button>
   </div>
+  <button id="calm" type="button" aria-expanded="true">Hide controls</button>
 </div>
 <button id="lolly" type="button">Drop a shrimp lolly</button>
 <div class="nogpu" id="nogpu"><div>
@@ -576,6 +584,22 @@ const canvas = document.getElementById('c');
 // 1200x640 post-header size at a whole-pixel scale, and snapTank() grabs a frame.
 const SNAP = new URLSearchParams(location.search).has('snap');
 if (SNAP) document.documentElement.classList.add('snap');
+
+// one button hides the caption and controls so the tank can just be watched; remembered per browser
+const CALM_STORE = 'filterfeed:calm';
+function setCalm(on) {
+  document.documentElement.classList.toggle('calm', on);
+  const btn = document.getElementById('calm');
+  btn.textContent = on ? 'Show controls' : 'Hide controls';
+  btn.setAttribute('aria-expanded', String(!on));
+  try { localStorage.setItem(CALM_STORE, on ? '1' : '0'); } catch (e) {}
+}
+{
+  let calm = false;
+  try { calm = localStorage.getItem(CALM_STORE) === '1'; } catch (e) {}
+  setCalm(calm);
+  document.getElementById('calm').addEventListener('click', () => setCalm(!document.documentElement.classList.contains('calm')));
+}
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function fail(msg) {

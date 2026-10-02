@@ -124,8 +124,8 @@ export default function AquariumGame() {
               <span className="blink text-surf" aria-hidden="true" />
             </h1>
             <p className="mt-1 text-sm text-inksoft">
-              An interactive community tank of banded corydoras, cherry barbs and cherry shrimp, rendered live in
-              WebGPU — my fishkeeping notes live just below the waterline.
+              An interactive freshwater community tank, inspired by the one in my home. Filled with cherry
+              barbs, corydoras catfish, dwarf cherry shrimp, and more. All rendered live in WebGPU!
             </p>
           </div>
           <a
