@@ -136,6 +136,17 @@ uploaded by `uploadSnapshot` (`src/server/snapshots.ts`, editor-only, PNG must b
 `netlify/functions/snapshot.mts` at `/snapshots/<key>`. On posts they are stored as
 `snapshots/<key>.png`; always build image URLs with `postImageSrc()` so both kinds work.
 
+### Visual Editor (Git CMS)
+
+`stackbit.config.ts` configures Netlify Visual Editor with Git CMS: the markdown posts in
+`content/posts/` are a `Post` model (title, summary, date, categories, image, body as
+`markdown_content`), and edits are committed back to the repo. `siteMap` rebuilds the
+title-derived `/posts/<slug>` URLs. The post page carries `data-sb-object-id` /
+`data-sb-field-path` annotations only while the markdown file is the version on screen
+(`BlogPost.filePath`); DB-only and DB-overridden posts are not visually editable.
+`vite.config.ts` sets `server.allowedHosts: true` so the editor's preview host can load the dev server.
+If you add or rename frontmatter fields, update both `content-collections.ts` and the model here.
+
 ### Netlify Image CDN
 
 All post images route through `/.netlify/images?url=/img/<file>&w=<width>&fm=webp`. Keep

@@ -11,6 +11,9 @@ export type BlogPost = {
   published: boolean
   // 'file' = markdown only, 'edited' = markdown overridden by a DB row, 'db' = DB only.
   source: 'file' | 'edited' | 'db'
+  // Repo path of the markdown file, only while the file is what the site shows.
+  // Used for Visual Editor annotations (data-sb-object-id).
+  filePath?: string
 }
 
 // Same transform content-collections.ts uses, so new posts get familiar URLs.
