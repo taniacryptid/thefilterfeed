@@ -1,20 +1,20 @@
 # The Filter Feed
 
-A personal fishkeeping blog built around an interactive pixel-art aquarium. The homepage embeds a
-self-contained WebGPU game — a community tank of banded corydoras and cherry barbs you can feed by
-tapping the water and toggle species in and out of — and
-the blog ("Field Notes") collects hands-on notes about tanks, sand sifting behavior, plants, and
-maintenance routines.
+The Filter Feed is my personal fishkeeping blog of my hobbyist dreams, built completely around an interactive pixel-art aquarium made with WebGPU. The homepage embeds this
+self-contained WebGPU game — a representation of one of my community freshwater tanks at home. Currently filled with groups of banded corydoras, cherry barbs, and shrimp. 
+You can feed by tapping the water, and toggle species you see on screen. 
 
-## Tech Stack
+The blog below (currently referenced as "Field Notes") is a collection of personal blog posts about my tanks, what I've learned in fishkeeping, tutorials, and more.
 
+## Current Tech Stack
+Here is the stack used to power this Netlify site.
 - **TanStack Start** (React 19, TanStack Router v1) on Vite 7
 - **Tailwind CSS 4** with a custom pixel-aquarium theme (`src/styles.css`)
 - **Content Collections** for type-safe markdown posts in `content/posts/`
 - **Netlify Image CDN** (`/.netlify/images?url=…`) serves all post imagery resized as WebP
 - **WebGPU game** served as a plain static file from `public/game/`, embedded via iframe
 
-## Local Development
+## Local Dev
 
 ```bash
 npm install
@@ -25,7 +25,7 @@ npm run preview  # preview the production build
 
 With the Netlify CLI you can also run `netlify dev` (proxies port 8888 to the app on 3000).
 
-## Where Things Live
+## Where Everything Lives
 
 | Path | What it is |
 |------|------------|
@@ -40,7 +40,7 @@ referenced directly. They are WebGPU snapshots rendered with the tank's own shad
 scenes in `scripts/snapshot-creatures.ts` and regenerate with
 `deno run --unstable-webgpu -A scripts/snapshot-creatures.ts`.
 
-## Writing and Editing Posts
+## Submitting blog posts
 
 Every post is one Markdown file in `content/posts/`. You can do everything from github.com in your
 browser. You don't need a local setup.
