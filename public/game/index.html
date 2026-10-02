@@ -61,7 +61,7 @@
   <p>A community tank drawn in WebGPU. Tap the water to drop food, or drop a lolly for the shrimp to climb.</p>
   <div class="tank-ctl" role="group" aria-label="Fish in the tank">
     <button type="button" data-species="cory" aria-pressed="true" title="Corydoras barbatus" style="--swatch: #d28c3c"><span class="box"></span>Banded corydoras</button>
-    <button type="button" data-species="barb" aria-pressed="true" title="Puntius titteya" style="--swatch: #c8282c"><span class="box"></span>Cherry barbs</button>
+    <button type="button" data-species="barb" aria-pressed="true" title="Puntius titteya" style="--swatch: #c0102c"><span class="box"></span>Cherry barbs</button>
     <button type="button" data-species="shrimp" aria-pressed="true" title="Neocaridina davidi" style="--swatch: #cd2a24"><span class="box"></span>Cherry shrimp</button>
   </div>
 </div>
@@ -99,26 +99,31 @@ const SW = SPRITE[0].length, SH = SPRITE.length;
 // art follows Derek Yu's pixel art basics: one light source above, hue-shifted ramps, selective outlines, no translucency
 const CMAP = {'.':0,'O':1,'S':2,'T':3,'t':4,'L':5,'H':6,'d':7,'D':8,'c':9,'C':10,'W':11,'w':12,'G':13,'g':14,'Y':15,'y':16,'F':17,'f':18,'e':19,'h':20,'b':21};
 
-// cherry barb (Puntius titteya); one sprite, two palettes in the shader: red male, tan female
+// cherry barb (Puntius titteya); one sprite, two palettes in the shader: crimson male, orange female with red fins
 const BARB = [
-'.............oo...............',
-'............oaao..............',
-'...........oafaao.............',
-'..........oafffaoo............',
-'oo.......ooddddddddoo.........',
-'ofo....oodddddddddddddoo......',
-'oafo..odbbkbbbbkbbbbbbbbddo...',
-'.oafoodbbbbbbbbbbbbbbbbbbheo..',
-'..oafdsssssssssssssssbbbbeeddo',
-'..oafbbbbbbbbbbbbbbbbbbbbbbbo.',
-'.oafoolbbbbbbbbbbbbbbbbbbbloo.',
-'ofo...ollllllllllllllllllo....',
-'oo.....oolllllllllllllloo.....',
-'.........ooaooooooooaoo.......',
-'.........oafo......oafo.......',
-'..........oo.......oo.........'];
+'.................n................',
+'.................fn...............',
+'................Xfmn..............',
+'................Xfmfn.............',
+'...............FXfmfmn............',
+'...nm.........SFFFFFfmn...........',
+'...nfm.......SSHHHHHHHHSS.........',
+'...nffm....SSLLLLLLHHHHHHHSS......',
+'....nfmf..SRRRRLLgLLLLLLLLgLLLS...',
+'.....nmfFSRRRRRRRRLLLLgLLLLLLheS..',
+'.....nmfFXXXXXXXXXXXXXXXXXXXXeeXO.',
+'....nfmfFOKKKKKKKKRRRRRnmffRRKKKO.',
+'...nffm...OQQQQBBBBBBBBBBBBBBBQO..',
+'...nfm.....OOQQQQQQQQQQQQQQQOOO...',
+'...nm........OOFOOOOFOOOOOO.......',
+'.............nfmF.nfmF............',
+'...........nfmf..nfn..............',
+'..........nn......................',
+'..................................',
+'..................................'];
 const BW = BARB[0].length, BH = BARB.length;
-const BCMAP = {'.':0,'o':1,'d':2,'b':3,'l':4,'s':5,'f':6,'a':7,'e':8,'h':9,'k':10};
+// fins: F = dark base where the fin meets the body, f = ray, m = membrane, n = pale tips (as in photos of the species)
+const BCMAP = {'.':0,'O':1,'S':2,'R':3,'L':4,'H':5,'K':6,'B':7,'Q':8,'X':9,'F':10,'f':11,'e':12,'h':13,'g':14,'m':15,'n':16};
 
 // cherry shrimp (Neocaridina davidi); one sprite, four color morphs in the shader
 const SHRIMP = [
@@ -213,12 +218,15 @@ fn fishPal(i: u32) -> vec3f {
   return hex(pal[i]);
 }
 
-// species 1 = male cherry barb, 2 = female
+// species 1 = male cherry barb (crimson), 2 = female (orange, red fins)
 fn barbPal(i: u32, female: bool) -> vec3f {
-  var m = array<u32, 11>(0x000000u, 0x2a0a0cu, 0x8e1a1eu, 0xc8282cu, 0xe8786au,
-                         0x9a1c20u, 0xe05a48u, 0xa81e22u, 0x0f0a08u, 0xffffffu, 0xf28a7au);
-  var f = array<u32, 11>(0x000000u, 0x1e1610u, 0x6e5a3au, 0xa88c5cu, 0xdcc8a0u,
-                         0x2a1e14u, 0xe0cc94u, 0xb0904eu, 0x0f0a08u, 0xffffffu, 0xc8b080u);
+  // outline, selout, mid, light, highlight, shadow, belly, belly shade, stripe, fin base, fin ray, eye, eye shine, scale glint, membrane, fin tip
+  // males: deep crimson, shadows leaning toward wine, highlights toward warm coral
+  var m = array<u32, 17>(0x000000u, 0x24040eu, 0x6a0a1eu, 0xc0102cu, 0xe3243au, 0xff7a6au, 0x80081eu, 0xd8303fu,
+                         0xa00e26u, 0x3a0410u, 0x8a0a20u, 0xe0303au, 0x0f0a08u, 0xffffffu, 0xffb0a0u, 0xe07a7cu, 0xf5b0a8u);
+  // females: mostly orange, with red in the fins and shadows leaning red
+  var f = array<u32, 17>(0x000000u, 0x2a0a08u, 0x6e1a12u, 0xe0602au, 0xf27c38u, 0xffb070u, 0xa83018u, 0xf48a52u,
+                         0xc8482au, 0x420e0au, 0x9a1a18u, 0xe8442cu, 0x0f0a08u, 0xffffffu, 0xffd0a0u, 0xf09070u, 0xffc49au);
   return hex(select(m[i], f[i], female));
 }
 
@@ -279,29 +287,55 @@ fn lollySample(pf: vec2f, deepc: vec3f) -> vec4f {
   return result;
 }
 
-// one clump of grass blades; returns rgb + coverage
-fn clump(pf: vec2f, i: f32, vw: f32, vh: f32, top: f32, t: f32, front: bool) -> vec4f {
+// Vallisneria-style ribbon grass, drawn to the same pixel-art rules as the sprites:
+// - each blade's centre line is a parabola (x = tip * s^2), so its horizontal steps shrink evenly
+//   toward the tip instead of wobbling into jaggies
+// - the sway is posed in held frames (4 per second) like hand-animated pixel art, not a smooth wave
+// - light from above: the side facing up is lit, the far side is in shade, tips catch a highlight,
+//   and the base darkens where the clump shades itself (dithered)
+// - fixed ramps per depth layer instead of blending with the water; only the foreground clumps get
+//   an outline, and only on their shadow side (selective outlining)
+fn plantRamp(layer: i32, tone: i32) -> vec3f {
+  var near = array<u32, 5>(0x10261au, 0x24502cu, 0x356c34u, 0x4f8c42u, 0x7ab25cu);
+  var mid = array<u32, 5>(0x1a3d35u, 0x2a5b42u, 0x377148u, 0x4e8a53u, 0x6fa569u);
+  var far = array<u32, 5>(0x1e4644u, 0x285b4du, 0x326b51u, 0x427d59u, 0x5a9069u);
+  if (layer == 0) { return hex(near[tone]); }
+  if (layer == 1) { return hex(mid[tone]); }
+  return hex(far[tone]);
+}
+
+fn clump(pf: vec2f, i: f32, vw: f32, vh: f32, top: f32, t: f32, front: bool, d: f32) -> vec4f {
   var baseX: f32;
   var hmul: f32;
-  if (front) { baseX = select(vw - 9.0, 5.0, i < 0.5); hmul = 1.25; }
+  if (front) { baseX = select(vw - 10.0, 6.0, i < 0.5); hmul = 1.25; }
   else { baseX = floor(fract(i * 0.618034 + 0.17) * vw); hmul = 1.0; }
   let gb = groundAt(baseX, top) + select(0.0, vh - top - 3.0, front);
-  for (var j = 0; j < 4; j++) {
+  let layer = select(select(2, 1, (i32(i) & 1) == 1), 0, front);
+  let pose = floor(t * 4.0);
+  let up = gb - pf.y;
+  for (var j = 0; j < 5; j++) {
     let fj = f32(j);
     let hseed = hash(vec2f(i * 7.0 + fj, 3.0 + select(0.0, 9.0, front)));
-    let h = (vh * 0.22 + hseed * vh * 0.32) * hmul;
-    let up = gb - pf.y;
+    let h = (vh * 0.2 + hseed * vh * 0.32) * hmul;
     if (up < 0.0 || up > h) { continue; }
     let s = up / h;
-    let bx = baseX + fj * 2.0 - 3.0;
-    let cx = round(bx + sin(t * 0.9 + i * 1.7 + fj + up * 0.06) * s * s * 7.0 + s * (fj - 1.5) * 5.0);
-    let wide = s < 0.6;
-    if (pf.x == cx || (wide && pf.x == cx + 1.0)) {
-      var c = select(hex(0x5f9e4au), hex(0x3f7a3au), (j & 1) == 1);
-      if (pf.x == cx + 1.0) { c = hex(0x2c5a32u); }
-      if (s > 0.85) { c = mix(c, hex(0x8fc46au), 0.5); }
-      return vec4f(c, 1.0);
-    }
+    // whole-pixel tip offset: the blade fans out from the clump and leans a little with each pose
+    let sway = sin(pose * 0.55 + i * 1.7 + fj * 0.9);
+    let tip = round((fj - 2.0) * 6.0 + (hseed - 0.5) * 6.0 + sway * 3.0);
+    let cx = baseX + fj * 2.0 - 4.0 + round(tip * s * s);
+    let w = select(select(1.0, 2.0, s < 0.72), 3.0, s < 0.3);
+    let dx = pf.x - cx;
+    if (dx < 0.0 || dx >= w) { continue; }
+    let litLeft = tip >= 0.0;
+    let onLit = (litLeft && dx == 0.0) || (!litLeft && dx == w - 1.0);
+    let onShade = w > 1.0 && ((litLeft && dx == w - 1.0) || (!litLeft && dx == 0.0));
+    var tone = 2;
+    if (w == 1.0 || onLit) { tone = 3; }
+    if (onShade) { tone = 1; }
+    if (s > 0.86 && !onShade) { tone = 4; }
+    if (s < 0.18 + d * 0.14) { tone = max(tone - 1, 0); }
+    if (front && onShade) { tone = 0; }
+    return vec4f(plantRamp(layer, tone), 1.0);
   }
   return vec4f(0.0);
 }
@@ -311,12 +345,12 @@ fn barbSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
   var ly = p.y - i32(f0.y);
   if (lx < 0 || lx >= BW || ly < -2 || ly >= BH + 2) { return vec4f(0.0); }
   if (f0.z < 0.0) { lx = BW - 1 - lx; }
-  if (lx < 10) {
-    let k = f32(10 - lx) / 10.0;
+  if (lx < 13) {
+    let k = f32(13 - lx) / 13.0;
     ly = ly - i32(round(sin(f1.x - f32(lx) * 0.5) * f1.y * k * k * 1.8));
   }
   // pelvic and anal fin flutter
-  if (ly >= 13 && lx >= 9 && lx <= 22) {
+  if (ly >= 15 && lx >= 12 && lx <= 28) {
     ly = ly - i32(round(sin(f1.x * 0.8 + 0.5) * 0.6));
   }
   if (ly < 0 || ly >= BH) { return vec4f(0.0); }
@@ -324,11 +358,9 @@ fn barbSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
   if (idx == 0u) { return vec4f(0.0); }
   let female = f1.w > 1.5;
   var c = barbPal(idx, female);
-  var a = 1.0;
-  if (idx == 6u) { a = 0.75; }
   // scale glints catch the light as the fish swims
-  if (idx == 10u && sin(t * 2.0 + f0.x * 0.3 + f32(lx) * 0.4) < -0.2) { c = barbPal(3u, female); }
-  return vec4f(c, a);
+  if (idx == 14u && sin(t * 2.0 + f0.x * 0.3 + f32(lx) * 0.4) < -0.2) { c = barbPal(4u, female); }
+  return vec4f(c, 1.0);
 }
 
 fn shrimpSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
@@ -427,8 +459,8 @@ fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
   // back plants
   let nBack = clamp(i32(vw / 38.0), 3, 14);
   for (var i = 0; i < nBack; i++) {
-    let c = clump(pf, f32(i), vw, vh, top, t, false);
-    if (c.a > 0.0) { col = mix(c.rgb, deep, 0.42); break; }
+    let c = clump(pf, f32(i), vw, vh, top, t, false, d);
+    if (c.a > 0.0) { col = c.rgb; break; }
   }
 
   // sand floor, seen at an angle: farther rows lighter, nearer rows bigger pebbles
@@ -509,8 +541,8 @@ fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
 
   // front plants
   for (var i = 0; i < 2; i++) {
-    let c = clump(pf, f32(i), vw, vh, top, t * 0.8, true);
-    if (c.a > 0.0) { col = c.rgb * 0.85; break; }
+    let c = clump(pf, f32(i), vw, vh, top, t * 0.8, true, d);
+    if (c.a > 0.0) { col = c.rgb; break; }
   }
 
   // bubbles
@@ -810,20 +842,25 @@ async function main() {
 
   // cherry barbs: a loose mid-water school that snaps up pellets on the way down
   function updateBarb(f, dt) {
-    const mouthX = f.x + (f.dir > 0 ? BW - 1 : 0), mouthY = f.y + 9;
+    // the rounded face ends one pixel in from the sprite edge
+    const mouthX = f.x + (f.dir > 0 ? BW - 2 : 1), mouthY = f.y + 11;
     f.timer -= dt;
     if (f.leaving) {
       f.mode = 'leave'; f.tx = f.exitX; f.ty = f.y; f.speed = 34;
-    } else if (food.length) {
+    } else if (food.some(p => !p.landed)) {
+      // barbs feed mid-water: once a pellet reaches the sand it's left for the corys and shrimp
       let best = null, bd = 1e9;
       for (const p of food) {
+        if (p.landed) continue;
         const dd = Math.abs(p.x - mouthX) + Math.abs(p.y - mouthY) + Math.abs(p.z - f.z) * 60;
         if (dd < bd) { bd = dd; best = p; }
       }
       f.mode = 'food';
       const want = best.x > f.x + BW / 2 ? 1 : -1;
-      f.tx = want > 0 ? best.x - (BW - 1) : best.x;
-      f.ty = best.y - 9; f.tz = best.z; f.speed = 34;
+      // each fish closes in from its own angle so the school doesn't collapse onto one spot
+      const spread = Math.min(1, (Math.abs(best.x - mouthX) + Math.abs(best.y - mouthY)) / 24);
+      f.tx = (want > 0 ? best.x - (BW - 2) : best.x - 1) + (f.ox || 0) * 0.3 * spread;
+      f.ty = best.y - 11 + (f.oy || 0) * 0.3 * spread; f.tz = best.z; f.speed = 34;
       if (Math.abs(best.x - mouthX) < 2.5 && Math.abs(best.y - mouthY) < 2.5 && Math.abs(best.z - f.z) < 0.08) {
         food.splice(food.indexOf(best), 1);
         f.mode = 'school'; f.timer = rand(0.3, 1);
@@ -840,8 +877,10 @@ async function main() {
     f.ty = Math.max(6, Math.min(f.ty, floorY(f.z) - BH + 4));
 
     const dx = f.tx - f.x, dy = f.ty - f.y;
-    const vx = Math.sign(dx) * Math.min(Math.abs(dx) * 2.5, f.speed);
-    const vy = Math.sign(dy) * Math.min(Math.abs(dy) * 2, f.speed * 0.6);
+    // chasing a sinking pellet needs a tighter grip, or the fish trails it all the way down
+    const gain = f.mode === 'food' ? 3 : 1;
+    const vx = Math.sign(dx) * Math.min(Math.abs(dx) * 2.5 * gain, f.speed);
+    const vy = Math.sign(dy) * Math.min(Math.abs(dy) * 2 * gain, f.speed * 0.6);
     f.x += vx * dt; f.y += vy * dt;
     if (Math.abs(dx) > 3) f.dir = dx > 0 ? 1 : -1;
     f.z = approach(f.z, f.tz, 0.25 * dt);
