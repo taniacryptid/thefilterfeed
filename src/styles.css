@@ -1,0 +1,269 @@
+@import "tailwindcss" source("../");
+
+@theme {
+  --font-pixel: "Pixelify Sans", ui-monospace, "Courier New", monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, "Courier New", monospace;
+  --font-prose: "Fraunces", Georgia, serif;
+  --font-sans: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-abyss: #0e2229;
+  --color-deep: #14323d;
+  --color-water: #1b4352;
+  --color-kelp: #2e6e63;
+  --color-surf: #7cc2b0;
+  --color-foam: #d8eadc;
+  --color-sand: #d9c48e;
+  --color-sandbright: #e8d4a0;
+  --color-clay: #c8642a;
+  --color-ink: #f2e6c4;
+  --color-inksoft: #cfe3d4;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-abyss);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-surf);
+  color: var(--color-abyss);
+}
+
+.pixelated {
+  image-rendering: pixelated;
+}
+
+/* hard pixel drop shadow used on panels + buttons */
+.pxshadow {
+  box-shadow: 6px 6px 0 0 rgba(14, 34, 41, 0.9);
+}
+.pxshadow-sm {
+  box-shadow: 3px 3px 0 0 rgba(14, 34, 41, 0.9);
+}
+
+/* 4-step pixel border */
+.pixel-frame {
+  border: 3px solid var(--color-ink);
+  outline: 3px solid var(--color-abyss);
+}
+
+/* dithered water backdrop */
+.dither-water {
+  background-color: var(--color-water);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(124, 194, 176, 0.07) 0px,
+      rgba(124, 194, 176, 0.07) 2px,
+      transparent 2px,
+      transparent 4px
+    ),
+    radial-gradient(120% 90% at 50% 0%, rgba(124, 194, 176, 0.14), transparent 55%);
+}
+
+/* scanline texture for hero surfaces */
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(10, 25, 31, 0.16) 0px,
+    rgba(10, 25, 31, 0.16) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
+/* animated food-pellet separator dots */
+.pellet-row {
+  background-image: radial-gradient(circle, var(--color-clay) 2.5px, transparent 3px);
+  background-size: 18px 6px;
+  background-repeat: repeat-x;
+  background-position: center;
+  height: 6px;
+}
+
+/* blinking cursor for pixel headings */
+.blink::after {
+  content: "_";
+  animation: blink 1.2s steps(1) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* gentle rise-in used on hero + cards */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise-in 0.7s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+.rise-1 {
+  animation-delay: 0.08s;
+}
+.rise-2 {
+  animation-delay: 0.18s;
+}
+.rise-3 {
+  animation-delay: 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .rise-1,
+  .rise-2,
+  .rise-3 {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ---------- long-form prose ---------- */
+.prose-reef {
+  font-family: var(--font-prose);
+  font-size: 1.075rem;
+  line-height: 1.85;
+  color: var(--color-foam);
+}
+.prose-reef p {
+  margin: 1.1em 0;
+}
+.prose-reef h2,
+.prose-reef h3 {
+  font-family: var(--font-pixel);
+  color: var(--color-ink);
+  letter-spacing: 0.01em;
+  margin: 1.9em 0 0.55em;
+  line-height: 1.25;
+}
+.prose-reef h2 {
+  font-size: 1.55rem;
+}
+.prose-reef h3 {
+  font-size: 1.2rem;
+}
+.prose-reef a {
+  color: var(--color-surf);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.prose-reef a:hover {
+  color: var(--color-foam);
+}
+.prose-reef strong {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+.prose-reef ul,
+.prose-reef ol {
+  margin: 1.1em 0;
+  padding-left: 1.4em;
+}
+.prose-reef ul {
+  list-style: none;
+}
+.prose-reef ul li {
+  position: relative;
+  padding-left: 0.4em;
+  margin: 0.45em 0;
+}
+.prose-reef ul li::before {
+  content: "";
+  position: absolute;
+  left: -1.05em;
+  top: 0.62em;
+  width: 7px;
+  height: 7px;
+  background: var(--color-clay);
+}
+.prose-reef ol {
+  list-style: decimal;
+}
+.prose-reef ol li {
+  margin: 0.45em 0;
+}
+.prose-reef blockquote {
+  margin: 1.4em 0;
+  padding: 0.2em 0 0.2em 1.2em;
+  border-left: 4px solid var(--color-kelp);
+  color: var(--color-inksoft);
+  font-style: italic;
+}
+.prose-reef code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-deep);
+  border: 1px solid var(--color-kelp);
+  padding: 0.1em 0.4em;
+  border-radius: 2px;
+  color: var(--color-surf);
+}
+.prose-reef pre {
+  background: var(--color-deep);
+  border: 2px solid var(--color-kelp);
+  padding: 1em 1.2em;
+  overflow-x: auto;
+  font-size: 0.86em;
+  line-height: 1.6;
+}
+.prose-reef pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-foam);
+}
+.prose-reef img {
+  border: 3px solid var(--color-ink);
+  outline: 3px solid var(--color-abyss);
+  image-rendering: pixelated;
+  max-width: 100%;
+}
+.prose-reef hr {
+  border: none;
+  height: 4px;
+  margin: 2.2em auto;
+  width: 60%;
+  background-image: radial-gradient(circle, var(--color-surf) 2px, transparent 2.5px);
+  background-size: 14px 4px;
+  background-repeat: repeat-x;
+}
+.prose-reef table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 0.9em;
+  margin: 1.4em 0;
+}
+.prose-reef th,
+.prose-reef td {
+  border: 2px solid var(--color-kelp);
+  padding: 0.45em 0.8em;
+  text-align: left;
+}
+.prose-reef th {
+  background: var(--color-deep);
+  font-family: var(--font-pixel);
+  color: var(--color-ink);
+}

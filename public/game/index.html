@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Filter Feed — aquarium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #f2e6c4;
+    --ink-soft: #cfe3d4;
+    --shade: #0f2a33;
+    --bg: #1a4150;
+    --panel: #12313c;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #142f3a; } }
+  :root[data-theme="dark"] { --bg: #142f3a; }
+  html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body { background: var(--bg); font-family: "Pixelify Sans", ui-monospace, "Courier New", monospace; color: var(--ink); }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; image-rendering: pixelated; cursor: crosshair; touch-action: manipulation; }
+  .caption { position: fixed; left: 0; top: 0; padding: calc(env(safe-area-inset-top, 0px) + 18px) 22px 0; pointer-events: none; text-shadow: 2px 2px 0 var(--shade); max-width: 34ch; }
+  .caption h1 { font-size: clamp(22px, 3.2vw, 34px); font-weight: 600; margin: 0 0 4px; letter-spacing: 0.01em; line-height: 1.1; }
+  .caption p { margin: 0; font-size: clamp(13px, 1.4vw, 16px); color: var(--ink-soft); line-height: 1.4; }
+  .caption em { font-style: normal; color: var(--ink); }
+  .nogpu { position: fixed; inset: 0; display: none; place-items: center; padding: 24px; }
+  .nogpu div { background: var(--panel); border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--shade); padding: 20px 24px; max-width: 42ch; line-height: 1.5; }
+  .nogpu h2 { margin: 0 0 8px; font-size: 22px; }
+  .nogpu a { color: var(--ink); }
+  .tank-ctl { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; pointer-events: auto; }
+  .tank-ctl button { font: inherit; font-size: clamp(12px, 1.2vw, 14px); line-height: 1; color: var(--ink); background: var(--panel); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--shade); padding: 5px 10px 5px 6px; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; text-shadow: none; }
+  .tank-ctl button:hover { background: var(--bg); }
+  .tank-ctl button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shade); }
+  .tank-ctl button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 3px; }
+  .tank-ctl button[aria-pressed="false"] { color: var(--ink-soft); border-color: var(--ink-soft); background: transparent; box-shadow: none; }
+  .tank-ctl .box { width: 10px; height: 10px; border: 2px solid currentColor; flex: none; }
+  .tank-ctl button[aria-pressed="true"] .box { background: var(--swatch); }
+  @media (max-width: 520px) { .caption { padding-left: 14px; } }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Pixel-art community aquarium with banded corydoras and cherry barbs"></canvas>
+<div class="caption">
+  <h1>The Filter Feed</h1>
+  <p>A community tank drawn in WebGPU. Tap the water to drop food.</p>
+  <div class="tank-ctl" role="group" aria-label="Fish in the tank">
+    <button type="button" data-species="cory" aria-pressed="true" title="Corydoras barbatus" style="--swatch: #d28c3c"><span class="box"></span>Banded corydoras</button>
+    <button type="button" data-species="barb" aria-pressed="true" title="Puntius titteya" style="--swatch: #c8282c"><span class="box"></span>Cherry barbs</button>
+  </div>
+</div>
+<div class="nogpu" id="nogpu"><div>
+  <h2>WebGPU isn't available here</h2>
+  <p id="why">This aquarium renders with WebGPU. Open it in a recent Chrome, Edge, or Safari, or check your device on <a href="https://webgpureport.org/" target="_blank" rel="noopener">webgpureport.org</a>.</p>
+</div></div>
+
+<script>
+const SPRITE = [
+'......................oo......................',
+'.....................ofdo.....................',
+'....................ofdffo....................',
+'...................ofdfdfo....................',
+'..................ofdffdffo...................',
+'.................ofdfdfffdo...................',
+'oo..............oofdffdfffoo..................',
+'odo......oo...oottdtdttdtddoooo...............',
+'ofdo....ofo.ootttdddtttddtttcddoo.............',
+'odffo..ofdoootdtttdtttddtttcctdddoo...........',
+'.ofdfooddddtttdddttttdttcccttdgdggoo..........',
+'..odfddtttttdttttddtttcccttddgdgtggdoo........',
+'...odddtttdddddttdddddttddddggdgggdeegoo......',
+'...odtddddddddddddddddddddgggdgggdeheeggoo....',
+'..odfdtdddttcccccccccttdddggdggggdeeeegdgdoo..',
+'.odfddddwcwccwwcwwcwwwwwwwwwwwgggdgddgggggggo.',
+'odfdooodwwwwwwwwwwwwwwwwwwwwwwwwwwwwggggggoo..',
+'ofdo..oofoooowwwwwwwwwwwwwwwwwwwwwwwwwwwoo1o1.',
+'odo...ofo...offooooowwwwwwwwooooooffoooo.1..1.',
+'oo....oo....odfo....ooooooooofdfo..ofdo.1.....',
+'.............oo.............offo...offo.......',
+'.............................oo.....oo........'];
+const SW = SPRITE[0].length, SH = SPRITE.length;
+const CMAP = {'.':0,'o':1,'d':2,'t':3,'c':4,'g':5,'w':6,'f':7,'e':8,'h':9,'1':10};
+
+// cherry barb (Puntius titteya); one sprite, two palettes in the shader: red male, tan female
+const BARB = [
+'.............oo...............',
+'............oaao..............',
+'...........oafaao.............',
+'..........oafffaoo............',
+'oo.......ooddddddddoo.........',
+'ofo....oodddddddddddddoo......',
+'oafo..odbbkbbbbkbbbbbbbbddo...',
+'.oafoodbbbbbbbbbbbbbbbbbbheo..',
+'..oafdsssssssssssssssbbbbeeddo',
+'..oafbbbbbbbbbbbbbbbbbbbbbbbo.',
+'.oafoolbbbbbbbbbbbbbbbbbbbloo.',
+'ofo...ollllllllllllllllllo....',
+'oo.....oolllllllllllllloo.....',
+'.........ooaooooooooaoo.......',
+'.........oafo......oafo.......',
+'..........oo.......oo.........'];
+const BW = BARB[0].length, BH = BARB.length;
+const BCMAP = {'.':0,'o':1,'d':2,'b':3,'l':4,'s':5,'f':6,'a':7,'e':8,'h':9,'k':10};
+
+// uniform layout, in vec4s: header (2), fish pairs, bubbles (48), food (24)
+const MAX_FISH = 16;
+const U_BUB = 2 + MAX_FISH * 2, U_FOOD = U_BUB + 48, U_VEC4 = U_FOOD + 24;
+
+// both sprites packed into one storage buffer: corydoras first, then the barb
+function buildSprites() {
+  const data = new Uint32Array(SW * SH + BW * BH);
+  SPRITE.forEach((row, y) => [...row].forEach((ch, x) => data[y * SW + x] = CMAP[ch] || 0));
+  BARB.forEach((row, y) => [...row].forEach((ch, x) => data[SW * SH + y * BW + x] = BCMAP[ch] || 0));
+  return data;
+}
+
+const WGSL = /* wgsl */`
+struct Scene {
+  a: vec4f,   // time, scale, vw, vh
+  b: vec4f,   // nFish, nBub, nFood, groundTop
+  fish: array<vec4f, ${MAX_FISH * 2}>,  // pairs: (x, y, dir, depth), (phase, amp, floorY, species)
+  bub: array<vec4f, 48>,   // (x, y, r, depth)
+  food: array<vec4f, 24>,  // (x, y, depth, 0)
+};
+@group(0) @binding(0) var<uniform> S: Scene;
+@group(0) @binding(1) var<storage, read> sprite: array<u32>;
+
+const SW: i32 = ${SW};
+const SH: i32 = ${SH};
+const BW: i32 = ${BW};
+const BH: i32 = ${BH};
+const BOFF: i32 = ${SW * SH};
+
+@vertex fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
+  var p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+  return vec4f(p[i], 0.0, 1.0);
+}
+
+fn hash(p: vec2f) -> f32 {
+  let q = fract(p * vec2f(0.1031, 0.1030));
+  let r = q + dot(q, q.yx + 33.33);
+  return fract((r.x + r.y) * r.x);
+}
+
+fn bayer(p: vec2i) -> f32 {
+  var m = array<f32, 16>(0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.);
+  return (m[(p.y & 3) * 4 + (p.x & 3)] + 0.5) / 16.0;
+}
+
+fn hex(c: u32) -> vec3f {
+  return vec3f(f32((c >> 16u) & 255u), f32((c >> 8u) & 255u), f32(c & 255u)) / 255.0;
+}
+
+fn groundAt(x: f32, top: f32) -> f32 {
+  return top + round(sin(x * 0.045) * 2.0 + sin(x * 0.13 + 1.0) * 1.0);
+}
+
+fn fishPal(i: u32) -> vec3f {
+  var pal = array<u32, 11>(0x000000u, 0x1e1610u, 0x3a281cu, 0xc49e62u, 0xe8d4a0u,
+                           0xd28c3cu, 0xf0e8d0u, 0xaa9678u, 0x0f0a08u, 0xffffffu, 0x5a4632u);
+  return hex(pal[i]);
+}
+
+// species 1 = male cherry barb, 2 = female
+fn barbPal(i: u32, female: bool) -> vec3f {
+  var m = array<u32, 11>(0x000000u, 0x2a0a0cu, 0x8e1a1eu, 0xc8282cu, 0xe8786au,
+                         0x9a1c20u, 0xe05a48u, 0xa81e22u, 0x0f0a08u, 0xffffffu, 0xf28a7au);
+  var f = array<u32, 11>(0x000000u, 0x1e1610u, 0x6e5a3au, 0xa88c5cu, 0xdcc8a0u,
+                         0x2a1e14u, 0xe0cc94u, 0xb0904eu, 0x0f0a08u, 0xffffffu, 0xc8b080u);
+  return hex(select(m[i], f[i], female));
+}
+
+// one clump of grass blades; returns rgb + coverage
+fn clump(pf: vec2f, i: f32, vw: f32, vh: f32, top: f32, t: f32, front: bool) -> vec4f {
+  var baseX: f32;
+  var hmul: f32;
+  if (front) { baseX = select(vw - 9.0, 5.0, i < 0.5); hmul = 1.25; }
+  else { baseX = floor(fract(i * 0.618034 + 0.17) * vw); hmul = 1.0; }
+  let gb = groundAt(baseX, top) + select(0.0, vh - top - 3.0, front);
+  for (var j = 0; j < 4; j++) {
+    let fj = f32(j);
+    let hseed = hash(vec2f(i * 7.0 + fj, 3.0 + select(0.0, 9.0, front)));
+    let h = (vh * 0.22 + hseed * vh * 0.32) * hmul;
+    let up = gb - pf.y;
+    if (up < 0.0 || up > h) { continue; }
+    let s = up / h;
+    let bx = baseX + fj * 2.0 - 3.0;
+    let cx = round(bx + sin(t * 0.9 + i * 1.7 + fj + up * 0.06) * s * s * 7.0 + s * (fj - 1.5) * 5.0);
+    let wide = s < 0.6;
+    if (pf.x == cx || (wide && pf.x == cx + 1.0)) {
+      var c = select(hex(0x5f9e4au), hex(0x3f7a3au), (j & 1) == 1);
+      if (pf.x == cx + 1.0) { c = hex(0x2c5a32u); }
+      if (s > 0.85) { c = mix(c, hex(0x8fc46au), 0.5); }
+      return vec4f(c, 1.0);
+    }
+  }
+  return vec4f(0.0);
+}
+
+fn barbSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
+  var lx = p.x - i32(f0.x);
+  var ly = p.y - i32(f0.y);
+  if (lx < 0 || lx >= BW || ly < -2 || ly >= BH + 2) { return vec4f(0.0); }
+  if (f0.z < 0.0) { lx = BW - 1 - lx; }
+  if (lx < 10) {
+    let k = f32(10 - lx) / 10.0;
+    ly = ly - i32(round(sin(f1.x - f32(lx) * 0.5) * f1.y * k * k * 1.8));
+  }
+  // pelvic and anal fin flutter
+  if (ly >= 13 && lx >= 9 && lx <= 22) {
+    ly = ly - i32(round(sin(f1.x * 0.8 + 0.5) * 0.6));
+  }
+  if (ly < 0 || ly >= BH) { return vec4f(0.0); }
+  let idx = sprite[u32(BOFF + ly * BW + lx)];
+  if (idx == 0u) { return vec4f(0.0); }
+  let female = f1.w > 1.5;
+  var c = barbPal(idx, female);
+  var a = 1.0;
+  if (idx == 6u) { a = 0.75; }
+  // scale glints catch the light as the fish swims
+  if (idx == 10u && sin(t * 2.0 + f0.x * 0.3 + f32(lx) * 0.4) < -0.2) { c = barbPal(3u, female); }
+  return vec4f(c, a);
+}
+
+fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
+  if (f1.w > 0.5) { return barbSample(p, f0, f1, t); }
+  let fx = i32(f0.x);
+  let fy = i32(f0.y);
+  var lx = p.x - fx;
+  var ly = p.y - fy;
+  if (lx < 0 || lx >= SW || ly < -3 || ly >= SH + 3) { return vec4f(0.0); }
+  if (f0.z < 0.0) { lx = SW - 1 - lx; }
+  if (lx < 15) {
+    let k = f32(15 - lx) / 15.0;
+    ly = ly - i32(round(sin(f1.x - f32(lx) * 0.38) * f1.y * k * k * 2.2));
+  }
+  // pectoral and pelvic fin flutter
+  if (ly >= 17 && lx >= 12 && lx <= 16) {
+    ly = ly - i32(round(sin(f1.x * 0.7 + 1.0) * 0.6));
+  }
+  if (ly < 0 || ly >= SH) { return vec4f(0.0); }
+  let idx = sprite[u32(ly * SW + lx)];
+  if (idx == 0u) { return vec4f(0.0); }
+  var c = fishPal(idx);
+  var a = 1.0;
+  if (idx == 7u) { a = 0.72; }
+  // barbels twitch
+  if (idx == 10u && sin(t * 3.0 + f0.x) > 0.6) { return vec4f(0.0); }
+  return vec4f(c, a);
+}
+
+@fragment fn fs(@builtin(position) fc: vec4f) -> @location(0) vec4f {
+  let t = S.a.x;
+  let sc = S.a.y;
+  let vw = S.a.z;
+  let vh = S.a.w;
+  let top = S.b.w;
+  let p = vec2i(floor(fc.xy / sc));
+  let pf = vec2f(p);
+  let d = bayer(p);
+  let g = groundAt(pf.x, top);
+
+  // water: dithered bands, lighter toward the surface
+  var wat = array<u32, 5>(0x7cc2b0u, 0x4f9e96u, 0x357c7fu, 0x255c68u, 0x1b4352u);
+  let wy = clamp(pf.y / (top + 6.0), 0.0, 1.0);
+  let lv = wy * 4.0;
+  var wi = i32(floor(lv)) + select(0, 1, fract(lv) > d);
+  let ray = sin((pf.x + pf.y * 0.55) * 0.06 + t * 0.25) * sin((pf.x + pf.y * 0.55) * 0.021 - t * 0.11);
+  if (smoothstep(0.3, 0.85, ray) * (1.15 - wy) > d) { wi -= 1; }
+  wi = clamp(wi, 0, 4);
+  var col = hex(wat[wi]);
+  let deep = hex(0x255c68u);
+
+  let sy = 1.0 + round(sin(pf.x * 0.18 + t * 1.5) * 0.8 + sin(pf.x * 0.07 - t) * 0.6);
+  if (pf.y < sy) { col = hex(0xa8dccbu); }
+  else if (pf.y == sy) { col = hex(0xdaf3e6u); }
+
+  // drifting specks
+  let qp = pf + vec2f(t * 1.3, -t * 0.7);
+  let cell = floor(qp / 14.0);
+  let loc = floor(qp - cell * 14.0);
+  let tgt = floor(vec2f(hash(cell), hash(cell + 17.0)) * 14.0);
+  if (all(loc == tgt) && hash(cell + 3.0) > 0.55 && pf.y < g) { col = mix(col, hex(0xd8eadcu), 0.55); }
+
+  // back plants
+  let nBack = clamp(i32(vw / 38.0), 3, 14);
+  for (var i = 0; i < nBack; i++) {
+    let c = clump(pf, f32(i), vw, vh, top, t, false);
+    if (c.a > 0.0) { col = mix(c.rgb, deep, 0.42); break; }
+  }
+
+  // sand floor, seen at an angle: farther rows lighter, nearer rows bigger pebbles
+  if (pf.y >= g) {
+    let sd = pf.y - g;
+    let fz = sd / max(vh - top, 1.0);
+    let hs = hash(pf);
+    var sand = hex(0xb89d68u);
+    if (sd < 1.0) { sand = hex(0xd9c48eu); }
+    else if (hs > 0.86) { sand = hex(0x8f7748u); }
+    else if (hs < 0.07) { sand = hex(0xe0cf9cu); }
+    if (fz > 0.55 + d * 0.3) { sand = sand * 0.88; }
+    let ps = vec2f(7.0 + fz * 5.0, 5.0 + fz * 4.0);
+    let pc = floor(pf / ps);
+    let hp = hash(pc + 41.0);
+    if (hp > 0.7 && sd > 1.0) {
+      let ctr = pc * ps + ps * 0.5;
+      let r = (pf - ctr) / (ps * vec2f(0.36, 0.34));
+      let e = dot(r, r);
+      if (e < 1.0) {
+        var pcols = array<u32, 4>(0x8a8478u, 0x6e5a44u, 0x9a6a46u, 0xb0aa98u);
+        sand = hex(pcols[u32(hp * 13.0) % 4u]);
+        if (r.y < -0.4 && r.x < 0.2) { sand = mix(sand, vec3f(1.0), 0.35); }
+        else if (r.y > 0.45) { sand = sand * 0.75; }
+      }
+    }
+    let cv = sin(pf.x * 0.33 + t * 1.1 + sin(pf.y * 0.6 + t)) + sin(pf.y * 0.9 - t * 0.8 + pf.x * 0.12);
+    if (cv > 1.3 + fz * 0.4) { sand = mix(sand, hex(0xf0e3b6u), 0.35); }
+    col = mix(sand, deep, (1.0 - fz) * 0.18);
+
+    // fish shadows
+    let nF = i32(S.b.x);
+    for (var i = 0; i < nF; i++) {
+      let f0 = S.fish[i * 2];
+      let f1 = S.fish[i * 2 + 1];
+      let barb = f1.w > 0.5;
+      let cx = f0.x + select(f32(SW), f32(BW), barb) * 0.5;
+      let lift = clamp((f1.z - (f0.y + select(f32(SH), f32(BH), barb))) / 50.0, 0.0, 1.0);
+      let hw = (select(15.0, 9.0, barb) - f0.w * 4.0) * (1.0 - lift * 0.4);
+      let dy = pf.y - f1.z;
+      if (abs(pf.x - cx) < hw && dy >= -1.0 && dy <= 1.0 && d < 0.75 - lift * 0.6) { col = col * 0.78; }
+    }
+  }
+
+  // food pellets
+  let nFood = i32(S.b.z);
+  for (var i = 0; i < nFood; i++) {
+    let fd = S.food[i];
+    let o = pf - vec2f(round(fd.x), round(fd.y));
+    if (o.x >= 0.0 && o.x <= 1.0 && o.y >= 0.0 && o.y <= 1.0) {
+      var fc2 = select(hex(0x7a3c18u), hex(0xc8642au), o.x == 0.0 && o.y == 0.0);
+      col = mix(fc2, deep, fd.z * 0.45);
+    }
+  }
+
+  // fish, already sorted back to front
+  let nF = i32(S.b.x);
+  for (var i = 0; i < nF; i++) {
+    let f0 = S.fish[i * 2];
+    let f1 = S.fish[i * 2 + 1];
+    let s = fishSample(p, f0, f1, t);
+    if (s.a > 0.0) {
+      let fcl = mix(s.rgb, deep, f0.w * 0.5);
+      col = mix(col, fcl, s.a);
+    }
+  }
+
+  // front plants
+  for (var i = 0; i < 2; i++) {
+    let c = clump(pf, f32(i), vw, vh, top, t * 0.8, true);
+    if (c.a > 0.0) { col = c.rgb * 0.85; break; }
+  }
+
+  // bubbles
+  let nB = i32(S.b.y);
+  for (var i = 0; i < nB; i++) {
+    let b = S.bub[i];
+    let c = vec2f(round(b.x), round(b.y));
+    let o = pf - c;
+    let dist = length(o);
+    if (b.z < 1.5) {
+      if (all(o == vec2f(0.0))) { col = mix(col, hex(0xe6f6eeu), 0.85); }
+    } else if (dist > b.z - 0.7 && dist < b.z + 0.35) {
+      col = mix(col, hex(0xe6f6eeu), 0.8);
+    } else if (dist < b.z && o.x == -1.0 && o.y == -1.0) {
+      col = hex(0xffffffu);
+    }
+  }
+
+  // stepped vignette
+  let uv = pf / vec2f(vw, vh) - 0.5;
+  let v = dot(uv, uv) * 1.4;
+  if (v > 0.28 + d * 0.12) { col = col * 0.86; }
+
+  return vec4f(col, 1.0);
+}
+`;
+
+const canvas = document.getElementById('c');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function fail(msg) {
+  document.getElementById('nogpu').style.display = 'grid';
+  document.querySelector('.caption').style.display = 'none';
+  if (msg) document.getElementById('why').insertAdjacentText('beforeend', ' ' + msg);
+}
+
+async function main() {
+  if (!navigator.gpu) return fail();
+  let adapter;
+  try { adapter = await navigator.gpu.requestAdapter(); } catch (e) {}
+  if (!adapter) return fail('No compatible GPU adapter was found.');
+  const device = await adapter.requestDevice();
+  const ctx = canvas.getContext('webgpu');
+  const format = navigator.gpu.getPreferredCanvasFormat();
+  ctx.configure({ device, format, alphaMode: 'opaque' });
+
+  const module = device.createShaderModule({ code: WGSL });
+  module.getCompilationInfo?.().then(info => {
+    for (const m of info.messages) if (m.type === 'error') console.error('WGSL', m.lineNum, m.message);
+  });
+  const pipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: { module, entryPoint: 'vs' },
+    fragment: { module, entryPoint: 'fs', targets: [{ format }] },
+    primitive: { topology: 'triangle-list' },
+  });
+
+  const spriteData = buildSprites();
+  const spriteBuf = device.createBuffer({ size: spriteData.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(spriteBuf, 0, spriteData);
+
+  const uData = new Float32Array(U_VEC4 * 4);
+  const uBuf = device.createBuffer({ size: uData.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  const bind = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [{ binding: 0, resource: { buffer: uBuf } }, { binding: 1, resource: { buffer: spriteBuf } }],
+  });
+
+  // ---- virtual pixel space ----
+  let scale = 4, vw = 320, vh = 160, top = 120;
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = Math.max(1, Math.min(8192, Math.floor(innerWidth * dpr)));
+    const H = Math.max(1, Math.min(8192, Math.floor(innerHeight * dpr)));
+    canvas.width = W; canvas.height = H;
+    scale = Math.max(2, Math.floor(H / 150));
+    vw = Math.ceil(W / scale); vh = Math.ceil(H / scale);
+    top = Math.round(vh - Math.max(34, vh * 0.26));
+  }
+  resize();
+  addEventListener('resize', resize);
+
+  const groundAt = x => top + Math.round(Math.sin(x * 0.045) * 2 + Math.sin(x * 0.13 + 1) * 1);
+  const floorY = z => (vh - 4) - z * (vh - 4 - top - 6);
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  const approach = (v, to, max) => v + Math.sign(to - v) * Math.min(Math.abs(to - v), max);
+
+  // ---- fish ----
+  // which species are in the tank; remembered between visits (iframe and fullscreen share it)
+  const SPECIES = {
+    cory: { w: SW, count: () => Math.min(7, 3 + Math.floor(vw / 160)) },
+    barb: { w: BW, count: () => Math.min(7, 4 + Math.floor(vw / 180)) },
+  };
+  const STORE = 'filterfeed:tank';
+  const enabled = { cory: true, barb: true };
+  try { Object.assign(enabled, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
+
+  let fish = [];
+  function makeFish(species, entering) {
+    const w = SPECIES[species].w;
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const f = {
+      species, x: entering ? (side < 0 ? -w - 2 : vw + 2) : rand(0, vw - w), z: rand(0.15, 0.9), h: 0,
+      tx: 0, tz: 0, th: 0, dir: entering ? -side : (Math.random() < 0.5 ? 1 : -1),
+      phase: rand(0, 6), amp: 0.4, speed: 10, mode: 'rest', timer: rand(0.5, 3), bubbleCd: 0, leaving: false,
+    };
+    f.tx = entering ? rand(0, vw - w) : f.x; f.tz = f.z;
+    if (species === 'cory') { if (entering) { f.mode = 'wander'; f.speed = rand(14, 20); } }
+    else {
+      f.female = Math.random() < 0.5;
+      f.y = rand(12, top - BH - 14); f.ty = f.y;
+      f.ox = 0; f.oy = 0; f.oz = 0; f.timer = 0; f.mode = 'school';
+    }
+    return f;
+  }
+  function setSpecies(species, on, entering) {
+    enabled[species] = on;
+    try { localStorage.setItem(STORE, JSON.stringify(enabled)); } catch (e) {}
+    const btn = document.querySelector(`[data-species="${species}"]`);
+    if (btn) btn.setAttribute('aria-pressed', String(on));
+    const mine = fish.filter(f => f.species === species);
+    if (on) {
+      // call back any that were on their way out, then top up the group
+      for (const f of mine) if (f.leaving) { f.leaving = false; f.mode = f.species === 'cory' ? 'rest' : 'school'; f.timer = 0; }
+      for (let i = mine.length; i < SPECIES[species].count() && fish.length < MAX_FISH; i++) fish.push(makeFish(species, entering));
+    } else {
+      // swim out past the nearest edge rather than vanishing
+      for (const f of mine) {
+        const w = SPECIES[species].w;
+        f.leaving = true;
+        f.exitX = f.x + w / 2 < vw / 2 ? -w - 4 : vw + 4;
+      }
+    }
+  }
+  for (const k in SPECIES) setSpecies(k, enabled[k], false);
+  fish.forEach((f, i) => { if (i === 0 && f.species === 'cory') f.z = f.tz = 0; });
+  document.querySelectorAll('[data-species]').forEach(btn => btn.addEventListener('click', () => {
+    setSpecies(btn.dataset.species, !enabled[btn.dataset.species], true);
+  }));
+
+  // the barbs hang around a shared point that drifts through the mid-water
+  const school = { x: vw / 2, y: top * 0.45, z: 0.45, tx: vw / 2, ty: top * 0.45, tz: 0.45, timer: 0 };
+  function updateSchool(dt) {
+    school.timer -= dt;
+    if (school.timer <= 0) {
+      school.timer = rand(3, 7);
+      school.tx = rand(BW, Math.max(BW + 1, vw - BW * 2));
+      school.ty = rand(16, Math.max(17, top - BH - 20));
+      school.tz = rand(0.15, 0.8);
+    }
+    school.x = approach(school.x, school.tx, 16 * dt);
+    school.y = approach(school.y, school.ty, 8 * dt);
+    school.z = approach(school.z, school.tz, 0.08 * dt);
+  }
+  const bubbles = [];
+  const food = [];
+
+  function pickWander(f) {
+    f.mode = 'wander';
+    f.tx = rand(-8, vw - SW + 8);
+    f.tz = Math.random() < 0.3 ? f.z : rand(0, 0.9);
+    f.th = Math.random() < 0.15 ? rand(4, 14) : 0;
+    f.speed = rand(7, 15);
+  }
+
+  function spawnBubble(x, y, z) {
+    if (bubbles.length >= 48) return;
+    bubbles.push({ x, y, z, r: Math.random() < 0.45 ? 2 : 1, vy: rand(9, 15), ph: rand(0, 6) });
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    const r = canvas.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width * vw;
+    const y = Math.min((e.clientY - r.top) / r.height * vh, top - 4);
+    for (let k = 0; k < 4 && food.length < 24; k++) {
+      const z = rand(0, 0.7);
+      food.push({ x: x + rand(-6, 6), y: y + rand(-2, 2), z, rest: floorY(z) - 4 + rand(0, 2), landed: false });
+    }
+  });
+
+  // cherry barbs: a loose mid-water school that snaps up pellets on the way down
+  function updateBarb(f, dt) {
+    const mouthX = f.x + (f.dir > 0 ? BW - 1 : 0), mouthY = f.y + 9;
+    f.timer -= dt;
+    if (f.leaving) {
+      f.mode = 'leave'; f.tx = f.exitX; f.ty = f.y; f.speed = 34;
+    } else if (food.length) {
+      let best = null, bd = 1e9;
+      for (const p of food) {
+        const dd = Math.abs(p.x - mouthX) + Math.abs(p.y - mouthY) + Math.abs(p.z - f.z) * 60;
+        if (dd < bd) { bd = dd; best = p; }
+      }
+      f.mode = 'food';
+      const want = best.x > f.x + BW / 2 ? 1 : -1;
+      f.tx = want > 0 ? best.x - (BW - 1) : best.x;
+      f.ty = best.y - 9; f.tz = best.z; f.speed = 34;
+      if (Math.abs(best.x - mouthX) < 2.5 && Math.abs(best.y - mouthY) < 2.5 && Math.abs(best.z - f.z) < 0.08) {
+        food.splice(food.indexOf(best), 1);
+        f.mode = 'school'; f.timer = rand(0.3, 1);
+      }
+    } else {
+      f.mode = 'school';
+      if (f.timer <= 0) {
+        f.timer = rand(0.8, 2.5);
+        f.ox = rand(-30, 30); f.oy = rand(-12, 12); f.oz = rand(-0.15, 0.15);
+        f.speed = Math.random() < 0.15 ? 40 : rand(10, 22);
+      }
+      f.tx = school.x + f.ox; f.ty = school.y + f.oy; f.tz = Math.max(0, Math.min(0.9, school.z + f.oz));
+    }
+    f.ty = Math.max(6, Math.min(f.ty, floorY(f.z) - BH + 4));
+
+    const dx = f.tx - f.x, dy = f.ty - f.y;
+    const vx = Math.sign(dx) * Math.min(Math.abs(dx) * 2.5, f.speed);
+    const vy = Math.sign(dy) * Math.min(Math.abs(dy) * 2, f.speed * 0.6);
+    f.x += vx * dt; f.y += vy * dt;
+    if (Math.abs(dx) > 3) f.dir = dx > 0 ? 1 : -1;
+    f.z = approach(f.z, f.tz, 0.25 * dt);
+
+    const moving = Math.abs(vx) > 0.5 || Math.abs(vy) > 0.5;
+    f.amp += ((moving ? 0.5 + Math.min(Math.abs(vx), 30) / 20 : 0.3) - f.amp) * Math.min(1, dt * 3);
+    f.phase += dt * (moving ? 7 + Math.abs(vx) * 0.5 : 3.5);
+  }
+
+  function update(dt) {
+    for (const p of food) {
+      if (!p.landed) {
+        p.y += 9 * dt; p.x += Math.sin(p.y * 0.3) * 4 * dt;
+        if (p.y >= p.rest) { p.y = p.rest; p.landed = true; }
+      }
+    }
+
+    updateSchool(dt);
+    for (const f of fish) {
+      if (f.species === 'barb') { updateBarb(f, dt); continue; }
+      const baseY = floorY(f.z) - SH + 2;
+      if (f.leaving) { f.mode = 'leave'; f.tx = f.exitX; f.th = 0; f.speed = 24; }
+      const mouthX = f.x + (f.dir > 0 ? SW - 2 : 1);
+
+      // food takes priority over everything but an air gulp
+      if (food.length && f.mode !== 'gulp-up' && !f.leaving) {
+        let best = null, bd = 1e9;
+        for (const p of food) {
+          const dd = Math.abs(p.x - mouthX) + Math.abs(p.z - f.z) * 60;
+          if (dd < bd) { bd = dd; best = p; }
+        }
+        f.mode = 'food'; f.target = best;
+        const want = best.x > f.x + SW / 2 ? 1 : -1;
+        f.tx = want > 0 ? best.x - (SW - 2) : best.x - 1;
+        f.tz = best.z; f.th = 0; f.speed = 20;
+        if (best.landed && Math.abs(best.x - mouthX) < 2.5 && Math.abs(best.z - f.z) < 0.06) {
+          food.splice(food.indexOf(best), 1);
+          f.mode = 'rest'; f.timer = rand(0.6, 1.5);
+        }
+      } else if (f.mode === 'food') {
+        f.mode = 'rest'; f.timer = rand(1, 3);
+      }
+
+      f.timer -= dt;
+      if (f.mode === 'rest' && f.timer <= 0) {
+        if (Math.random() < 0.12) { f.mode = 'gulp-up'; f.th = baseY - 4; f.tx = f.x + f.dir * 10; f.speed = 26; }
+        else pickWander(f);
+      }
+
+      // move
+      const dx = f.tx - f.x;
+      const sp = f.mode === 'rest' ? 0 : f.speed;
+      const vx = Math.sign(dx) * Math.min(Math.abs(dx) * 2, sp);
+      f.x += vx * dt;
+      if (sp > 0 && Math.abs(dx) > 2) f.dir = dx > 0 ? 1 : -1;
+      f.z += Math.sign(f.tz - f.z) * Math.min(Math.abs(f.tz - f.z), 0.18 * dt);
+      const hRate = f.mode === 'gulp-up' ? 45 : f.mode === 'gulp-down' ? 30 : 12;
+      f.h += Math.sign(f.th - f.h) * Math.min(Math.abs(f.th - f.h), hRate * dt);
+
+      if (f.mode === 'gulp-up' && Math.abs(f.th - f.h) < 1) {
+        f.mode = 'gulp-down'; f.th = 0; f.bubbleCd = 0.4;
+        spawnBubble(f.x + (f.dir > 0 ? SW - 3 : 2), floorY(f.z) - SH + 2 - f.h + 12, f.z);
+      }
+      if (f.mode === 'gulp-down') {
+        f.bubbleCd -= dt;
+        if (f.bubbleCd <= 0 && f.h > 10) { f.bubbleCd = rand(0.5, 1.1); spawnBubble(f.x + (f.dir > 0 ? 30 : 15), floorY(f.z) - SH + 2 - f.h + 10, f.z); }
+        if (f.h < 0.5) { f.mode = 'rest'; f.timer = rand(1, 3); }
+      }
+      if (f.mode === 'wander' && Math.abs(dx) < 1 && Math.abs(f.th - f.h) < 1) { f.mode = 'rest'; f.timer = rand(1, 5); }
+
+      const moving = Math.abs(vx) > 0.5 || f.mode.startsWith('gulp');
+      f.amp += ((moving ? 0.5 + Math.min(Math.abs(vx), 26) / 22 : 0.18) - f.amp) * Math.min(1, dt * 3);
+      f.phase += dt * (moving ? 5 + Math.abs(vx) * 0.45 : 2.2);
+      // sifting bob while resting on the sand
+      f.bob = f.mode === 'rest' && f.h < 1 ? (Math.sin(f.phase * 0.9) > 0.3 ? 1 : 0) : 0;
+    }
+    fish = fish.filter(f => !f.leaving || (f.x > -SPECIES[f.species].w - 1 && f.x < vw + 1));
+
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      const b = bubbles[i];
+      b.y -= b.vy * dt; b.ph += dt * 4;
+      b.x += Math.sin(b.ph) * 3 * dt;
+      if (b.y < 3) bubbles.splice(i, 1);
+    }
+    // a slow trickle of bubbles from the substrate
+    if (Math.random() < dt * 0.25) spawnBubble(rand(0, vw), groundAt(0) + rand(0, 6), rand(0.3, 1));
+  }
+
+  let last = performance.now(), start = last;
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    update(dt);
+    const t = (now - start) / 1000 * (reduceMotion ? 0.3 : 1);
+
+    uData.fill(0);
+    uData.set([t, scale, vw, vh], 0);
+    const sorted = fish.slice(0, MAX_FISH).sort((a, b) => b.z - a.z);
+    uData.set([sorted.length, bubbles.length, food.length, top], 4);
+    sorted.forEach((f, i) => {
+      const barb = f.species === 'barb';
+      const y = barb ? Math.round(f.y) : Math.round(floorY(f.z) - SH + 2 - f.h + (f.bob || 0));
+      uData.set([Math.round(f.x), y, f.dir, f.z], 8 + i * 8);
+      uData.set([f.phase, f.amp, Math.round(floorY(f.z)), barb ? (f.female ? 2 : 1) : 0], 12 + i * 8);
+    });
+    bubbles.forEach((b, i) => uData.set([b.x, b.y, b.r, b.z], U_BUB * 4 + i * 4));
+    food.forEach((p, i) => uData.set([p.x, p.y, p.z, 0], U_FOOD * 4 + i * 4));
+    device.queue.writeBuffer(uBuf, 0, uData);
+
+    const enc = device.createCommandEncoder();
+    const pass = enc.beginRenderPass({
+      colorAttachments: [{ view: ctx.getCurrentTexture().createView(), loadOp: 'clear', storeOp: 'store', clearValue: { r: 0, g: 0, b: 0, a: 1 } }],
+    });
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(0, bind);
+    pass.draw(3);
+    pass.end();
+    device.queue.submit([enc.finish()]);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+main().catch(e => { console.error(e); fail('Setup failed: ' + e.message); });
+</script>
+</body>
+</html>
