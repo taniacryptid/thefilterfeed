@@ -119,8 +119,8 @@ function SiteFooter() {
     <footer className="mt-16 border-t-4 border-kelp bg-abyss/90">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 py-8 text-center font-pixel text-sm text-inksoft sm:px-6">
         <div className="pellet-row w-24" aria-hidden="true" />
-        <p className="m-0">The Filter Feed — a fed fish is a happy fish.</p>
-        <p className="m-0 text-xs opacity-70">Corydoras, cherry barbs and cherry shrimp rendered live in WebGPU.</p>
+        <p className="m-0">The Filter Feed: my filter feedin' adventures!</p>
+        <p className="m-0 text-xs opacity-70">All rendered live in WebGPU, plus some hopes and dreams. If you are still reading this then you'll--</p>
         <Link to="/login" className="mt-1 text-xs text-inksoft opacity-50 no-underline hover:text-surf hover:opacity-100">
           Keeper log in
         </Link>
