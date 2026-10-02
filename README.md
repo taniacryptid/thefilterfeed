@@ -1,5 +1,5 @@
 # The Filter Feed
-<img width="720" height="400" alt="image" src="https://github.com/user-attachments/assets/3177c087-dda2-4cff-84d2-8576fa65ca19" />
+<img width="720" height="400" alt="barb-closeup" src="https://github.com/user-attachments/assets/199fd31d-8a0f-4ea1-93da-0493d4c1e417" />
 
 The Filter Feed is my personal fishkeeping blog of my hobbyist dreams, built completely around an interactive pixel-art aquarium made with WebGPU. The homepage embeds this
 self-contained WebGPU game — a representation of one of my community freshwater tanks at home. Currently filled with groups of banded corydoras, cherry barbs, and shrimp. 
