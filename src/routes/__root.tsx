@@ -1,4 +1,7 @@
+import { useEffect } from 'react'
 import { HeadContent, Link, Scripts, createRootRoute } from '@tanstack/react-router'
+
+import { isEditor, useAuth } from '@/hooks/useAuth'
 
 import '../styles.css'
 
@@ -51,6 +54,7 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootDocument,
+  notFoundComponent: NotFound,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -65,6 +69,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           <div className="flex-1">{children}</div>
           <SiteFooter />
         </div>
+        <AuthLinkForwarder />
         <Scripts />
       </body>
     </html>
@@ -90,6 +95,7 @@ function SiteHeader() {
         <nav className="flex items-center gap-1 font-pixel text-sm sm:gap-2 sm:text-base">
           <NavLink to="/">Aquarium</NavLink>
           <NavLink to="/blog">Field Notes</NavLink>
+          <DeskLink />
         </nav>
       </div>
     </header>
@@ -115,7 +121,43 @@ function SiteFooter() {
         <div className="pellet-row w-24" aria-hidden="true" />
         <p className="m-0">The Filter Feed — a fed fish is a happy fish.</p>
         <p className="m-0 text-xs opacity-70">Corydoras, cherry barbs and cherry shrimp rendered live in WebGPU.</p>
+        <Link to="/login" className="mt-1 text-xs text-inksoft opacity-50 no-underline hover:text-surf hover:opacity-100">
+          Keeper log in
+        </Link>
       </div>
     </footer>
+  )
+}
+
+// Shown only to the signed-in editor.
+function DeskLink() {
+  const user = useAuth()
+  if (!isEditor(user)) return null
+  return <NavLink to="/admin">Desk</NavLink>
+}
+
+// Identity emails (invite, password reset, confirmation) link to the site root
+// with a token in the hash; hand those off to /login, which processes them.
+function AuthLinkForwarder() {
+  useEffect(() => {
+    const { hash, pathname } = window.location
+    if (pathname !== '/login' && /(invite|recovery|confirmation|email_change)_token=/.test(hash)) {
+      window.location.replace('/login' + hash)
+    }
+  }, [])
+  return null
+}
+
+function NotFound() {
+  return (
+    <div className="mx-auto max-w-xl px-4 py-20 text-center sm:px-6">
+      <div className="pixel-frame bg-deep pxshadow p-8">
+        <p className="m-0 font-pixel text-sm text-surf">// 404</p>
+        <h1 className="mt-1 mb-3 font-pixel text-2xl font-semibold text-ink">Nothing swimming here</h1>
+        <Link to="/blog" className="font-pixel text-surf underline underline-offset-4 hover:text-foam">
+          ← Back to all field notes
+        </Link>
+      </div>
+    </div>
   )
 }

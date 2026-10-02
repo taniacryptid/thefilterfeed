@@ -1,22 +1,20 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, notFound } from '@tanstack/react-router'
 import { marked } from 'marked'
 
-import { allPosts } from 'content-collections'
+import { type BlogPost, formatDate } from '@/lib/posts'
+import { getPost } from '@/server/posts'
 
 export const Route = createFileRoute('/posts/$slug')({
   loader: async ({ params }) => {
-    const post = allPosts.find((post) => post.slug === params.slug)
-    if (!post) {
-      throw new Error('Post not found')
-    }
-    return post
+    const result = await getPost({ data: { slug: params.slug } })
+    if (!result) throw notFound()
+    return result
   },
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const post = Route.useLoaderData()
-  const others = allPosts.filter((p) => p.slug !== post.slug).slice(0, 2)
+  const { post, others }: { post: BlogPost; others: BlogPost[] } = Route.useLoaderData()
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -94,10 +92,4 @@ function RouteComponent() {
       </div>
     </div>
   )
-}
-
-function formatDate(date: string): string {
-  const d = new Date(date)
-  if (Number.isNaN(d.getTime())) return date
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
