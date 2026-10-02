@@ -73,7 +73,7 @@ function LoginPage() {
       run(async () => {
         const u = await login(email, password)
         if (isEditor(u)) goToDesk()
-        else setNotice('Signed in, but this account does not have editor access yet.')
+        else setNotice('Signed in, but this account does not have editor access yet. Add the admin role to it under Identity in the Netlify dashboard, then log in again.')
       })
     } else if (mode.kind === 'forgot') {
       run(async () => {
@@ -86,7 +86,7 @@ function LoginPage() {
         if (isEditor(u)) goToDesk()
         else {
           setMode({ kind: 'login' })
-          setNotice('Account created. Ask the site admin to grant the editor role, then log in.')
+          setNotice('Account created. Add the admin role to it under Identity in the Netlify dashboard, then log in.')
         }
       })
     } else {
@@ -122,9 +122,19 @@ function LoginPage() {
                 Go to the editor's desk →
               </button>
             ) : (
-              <p className="m-0 text-sm text-inksoft">
-                This account doesn't have editor access.
-              </p>
+              <>
+                <p className="m-0 text-sm text-inksoft">
+                  This account doesn't have editor access. If the admin role was just added, log in
+                  again so your session picks it up.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => run(async () => { await logout(); setNotice('Log in again to refresh your access.') })}
+                  className="btn-px w-full"
+                >
+                  Refresh my access
+                </button>
+              </>
             )}
             <button
               type="button"
