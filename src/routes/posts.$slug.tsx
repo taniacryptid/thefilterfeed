@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router'
 import { marked } from 'marked'
 
-import { type BlogPost, formatDate } from '@/lib/posts'
+import { type BlogPost, formatDate, postImageSrc } from '@/lib/posts'
 import { getPost } from '@/server/posts'
 
 export const Route = createFileRoute('/posts/$slug')({
@@ -27,7 +27,7 @@ function RouteComponent() {
 
         {post.image && (
           <img
-            src={`/.netlify/images?url=/img/${post.image}&w=900&fm=webp`}
+            src={postImageSrc(post.image, 900)}
             alt={post.title}
             width={900}
             height={483}

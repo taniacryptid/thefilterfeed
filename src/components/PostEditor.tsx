@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { marked } from 'marked'
 
 import { cn } from '@/lib/utils'
-import { type BlogPost, POST_IMAGES } from '@/lib/posts'
+import TankCamera from '@/components/TankCamera'
+import { type BlogPost, POST_IMAGES, SNAPSHOT_PREFIX, postImageSrc } from '@/lib/posts'
 import { deletePost, savePost } from '@/server/posts'
+import { deleteSnapshot, listSnapshots } from '@/server/snapshots'
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -22,6 +24,34 @@ export default function PostEditor({ post }: { post?: BlogPost }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState('')
+  const [snapshots, setSnapshots] = useState<string[]>([])
+  const [camera, setCamera] = useState(false)
+
+  useEffect(() => {
+    listSnapshots()
+      .then(setSnapshots)
+      .catch((e) => console.error('Could not load header snapshots', e))
+  }, [])
+
+  // The post's own snapshot stays pickable even if the list hasn't caught up yet.
+  const images = [
+    ...new Set([
+      ...(image.startsWith(SNAPSHOT_PREFIX) ? [image] : []),
+      ...snapshots,
+      ...POST_IMAGES,
+    ]),
+  ]
+
+  async function removeSnapshot(file: string) {
+    if (!confirm('Delete this snapshot from the library? Posts using it will lose their header.')) return
+    try {
+      await deleteSnapshot({ data: { image: file } })
+      setSnapshots((list) => list.filter((f) => f !== file))
+      if (image === file) setImage('')
+    } catch (e) {
+      setError(errorMessage(e))
+    }
+  }
 
   const preview = useMemo(() => (tab === 'preview' ? (marked(content) as string) : ''), [tab, content])
 
@@ -131,23 +161,42 @@ export default function PostEditor({ post }: { post?: BlogPost }) {
         </label>
 
         <div className="field-px">
-          <span>Tank snapshot</span>
+          <div className="flex items-center justify-between gap-3">
+            <span>Tank snapshot</span>
+            <button type="button" onClick={() => setCamera(true)} className="btn-px-ghost text-xs">
+              Snap the tank
+            </button>
+          </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             <ImageChoice selected={image === ''} onClick={() => setImage('')}>
               <span className="flex aspect-[120/64] items-center justify-center bg-abyss font-pixel text-xs text-inksoft">
                 No image
               </span>
             </ImageChoice>
-            {POST_IMAGES.map((file) => (
-              <ImageChoice key={file} selected={image === file} onClick={() => setImage(file)}>
-                <img
-                  src={`/.netlify/images?url=/img/${file}&w=240&fm=webp`}
-                  alt={file}
-                  className="pixelated block aspect-[120/64] w-full object-cover"
-                />
-              </ImageChoice>
+            {images.map((file) => (
+              <div key={file} className="relative">
+                <ImageChoice selected={image === file} onClick={() => setImage(file)}>
+                  <img
+                    src={postImageSrc(file, 240)}
+                    alt={file}
+                    className="pixelated block aspect-[120/64] w-full object-cover"
+                  />
+                </ImageChoice>
+                {file.startsWith(SNAPSHOT_PREFIX) && (
+                  <button
+                    type="button"
+                    onClick={() => removeSnapshot(file)}
+                    aria-label="Delete snapshot"
+                    title="Delete snapshot"
+                    className="absolute top-1 right-1 cursor-pointer border-2 border-ink bg-abyss px-1.5 font-pixel text-xs leading-tight text-clay hover:bg-clay hover:text-ink"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             ))}
           </div>
+          <small>Snapshots are captured at the header size, so they never need cropping.</small>
         </div>
 
         <div className="field-px">
@@ -199,6 +248,17 @@ export default function PostEditor({ post }: { post?: BlogPost }) {
           )}
         </div>
       </form>
+
+      {camera && (
+        <TankCamera
+          onClose={() => setCamera(false)}
+          onSaved={(file) => {
+            setSnapshots((list) => [file, ...list.filter((f) => f !== file)])
+            setImage(file)
+            setCamera(false)
+          }}
+        />
+      )}
     </div>
   )
 }

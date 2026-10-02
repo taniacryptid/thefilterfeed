@@ -128,6 +128,14 @@ load posts through `listPosts`/`getPost`, never `allPosts` directly. If the data
 reads fall back to the markdown posts. Post images are chosen from `POST_IMAGES` in
 `src/lib/posts.ts` — add new snapshot filenames there after rendering them.
 
+The editor also has a "Snap the tank" camera (`src/components/TankCamera.tsx`). It embeds
+`/game/?snap`, where the game locks its canvas to exactly 1200x640 (scale 4, 300x160 virtual
+pixels) and exposes `window.snapTank()` to read back a PNG of the next frame. Captures are
+uploaded by `uploadSnapshot` (`src/server/snapshots.ts`, editor-only, PNG must be exactly
+1200x640) to the `header-snapshots` Netlify Blobs store and served by
+`netlify/functions/snapshot.mts` at `/snapshots/<key>`. On posts they are stored as
+`snapshots/<key>.png`; always build image URLs with `postImageSrc()` so both kinds work.
+
 ### Netlify Image CDN
 
 All post images route through `/.netlify/images?url=/img/<file>&w=<width>&fm=webp`. Keep

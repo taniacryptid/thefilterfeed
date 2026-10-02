@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 
-import { type BlogPost, formatDate, sortByDate } from '@/lib/posts'
+import { type BlogPost, formatDate, postImageSrc, sortByDate } from '@/lib/posts'
 
 export function PostCard({ post }: { post: BlogPost }) {
   return (
@@ -8,7 +8,7 @@ export function PostCard({ post }: { post: BlogPost }) {
       {post.image && (
         <Link to="/posts/$slug" params={{ slug: post.slug }} className="block">
           <img
-            src={`/.netlify/images?url=/img/${post.image}&w=680&fm=webp`}
+            src={postImageSrc(post.image, 680)}
             alt={post.title}
             width={680}
             height={364}
