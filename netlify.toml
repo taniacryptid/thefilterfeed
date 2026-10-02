@@ -8,12 +8,14 @@
   port = 8888
 
 # The interactive aquarium is a fully self-contained static page
-# served from public/game/ so it stays a plain static file.
+# served from public/game/ so it stays a plain static file. Browsers must
+# revalidate it on every load so the embedded iframe never shows a stale tank
+# after a deploy (the CDN still caches it and answers with a cheap 304).
 
 [[headers]]
   for = "/game/*"
   [headers.values]
-    Cache-Control = "public, max-age=3600"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/img/*"

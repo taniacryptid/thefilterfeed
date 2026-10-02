@@ -40,20 +40,28 @@
   .tank-ctl button[aria-pressed="false"] { color: var(--ink-soft); border-color: var(--ink-soft); background: transparent; box-shadow: none; }
   .tank-ctl .box { width: 10px; height: 10px; border: 2px solid currentColor; flex: none; }
   .tank-ctl button[aria-pressed="true"] .box { background: var(--swatch); }
-  @media (max-width: 520px) { .caption { padding-left: 14px; } }
+  #lolly { position: fixed; right: calc(env(safe-area-inset-right, 0px) + 18px); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+    font: 600 clamp(12px, 1.4vw, 16px)/1 "Pixelify Sans", ui-monospace, "Courier New", monospace; color: #3a1a0c; background: #e8c27a;
+    border: 3px solid #3a1a0c; box-shadow: 4px 4px 0 #3a1a0c; padding: 9px 13px 8px; cursor: pointer; }
+  #lolly:hover { background: #f2d494; }
+  #lolly:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #3a1a0c; }
+  #lolly:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  #lolly[hidden] { display: none; }
+  @media (max-width: 520px) { .caption { padding-left: 14px; } #lolly { right: 12px; bottom: 12px; } }
 </style>
 </head>
 <body>
 <canvas id="c" aria-label="Pixel-art community aquarium with banded corydoras, cherry barbs and cherry shrimp"></canvas>
 <div class="caption">
   <h1>The Filter Feed</h1>
-  <p>A community tank drawn in WebGPU. Tap the water to drop food.</p>
+  <p>A community tank drawn in WebGPU. Tap the water to drop food, or drop a lolly for the shrimp to climb.</p>
   <div class="tank-ctl" role="group" aria-label="Fish in the tank">
     <button type="button" data-species="cory" aria-pressed="true" title="Corydoras barbatus" style="--swatch: #d28c3c"><span class="box"></span>Banded corydoras</button>
     <button type="button" data-species="barb" aria-pressed="true" title="Puntius titteya" style="--swatch: #c8282c"><span class="box"></span>Cherry barbs</button>
     <button type="button" data-species="shrimp" aria-pressed="true" title="Neocaridina davidi" style="--swatch: #cd2a24"><span class="box"></span>Cherry shrimp</button>
   </div>
 </div>
+<button id="lolly" type="button">Drop a shrimp lolly</button>
 <div class="nogpu" id="nogpu"><div>
   <h2>WebGPU isn't available here</h2>
   <p id="why">This aquarium renders with WebGPU. Open it in a recent Chrome, Edge, or Safari, or check your device on <a href="https://webgpureport.org/" target="_blank" rel="noopener">webgpureport.org</a>.</p>
@@ -129,9 +137,9 @@ const SHRIMP = [
 const RW = SHRIMP[0].length, RH = SHRIMP.length;
 const RCMAP = {'.':0,'o':1,'R':2,'r':3,'p':4,'e':5,'h':6,'a':7,'l':8};
 
-// uniform layout, in vec4s: header (2), fish pairs, bubbles (48), food (24)
+// uniform layout, in vec4s: header (2), fish pairs, bubbles (48), food (24), fish angles (4 per vec4), lolly (2)
 const MAX_FISH = 20;
-const U_BUB = 2 + MAX_FISH * 2, U_FOOD = U_BUB + 48, U_VEC4 = U_FOOD + 24;
+const U_BUB = 2 + MAX_FISH * 2, U_FOOD = U_BUB + 48, U_ANG = U_FOOD + 24, U_LOLLY = U_ANG + MAX_FISH / 4, U_VEC4 = U_LOLLY + 2;
 
 // all sprites packed into one storage buffer: corydoras first, then the barb, then the shrimp
 function buildSprites() {
@@ -149,6 +157,9 @@ struct Scene {
   fish: array<vec4f, ${MAX_FISH * 2}>,  // pairs: (x, y, dir, depth), (phase, amp, floorY, species)
   bub: array<vec4f, 48>,   // (x, y, r, depth)
   food: array<vec4f, 24>,  // (x, y, depth, 0)
+  ang: array<vec4f, ${MAX_FISH / 4}>,  // per-fish rotation, packed four to a vec4
+  l0: vec4f,  // lolly ball: x, y, radius, depth
+  l1: vec4f,  // lolly stick base: x, y, active, bite roughness
 };
 @group(0) @binding(0) var<uniform> S: Scene;
 @group(0) @binding(1) var<storage, read> sprite: array<u32>;
@@ -213,6 +224,50 @@ fn shrimpPal(i: u32, v: i32) -> vec3f {
   return hex(red[i]);
 }
 
+// the shrimp lolly: a wooden stick with a ball of food that gets nibbled down
+fn lollySample(pf: vec2f, deepc: vec3f) -> vec4f {
+  let L0 = S.l0;
+  let L1 = S.l1;
+  if (L1.z < 0.5) { return vec4f(0.0); }
+  let ball = vec2f(L0.x, L0.y);
+  let base = vec2f(L1.x, L1.y);
+  var result = vec4f(0.0);
+  let pc = pf + 0.5;
+  if (pc.y <= base.y + 0.5) {
+    let ba = ball - base;
+    let pa = pc - base;
+    let hh = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    let off = pa - ba * hh;
+    if (length(off) < 1.3) {
+      let side = ba.x * pa.y - ba.y * pa.x;
+      var wood = select(hex(0xc89458u), hex(0x7a5230u), side > 0.0);
+      if (fract(hh * 9.0) < 0.12) { wood = wood * 0.9; }
+      result = vec4f(wood, 1.0);
+    }
+  }
+  let r = L0.z;
+  if (r > 0.5) {
+    let qv = pc - ball;
+    let ang = atan2(qv.y, qv.x);
+    let bite = (hash(vec2f(floor((ang + 3.1416) * 3.0), 5.0)) - 0.5) * 2.4 * L1.w;
+    let rr = r + bite;
+    let dist = length(qv);
+    if (dist < rr) {
+      let hs = hash(floor(pf) + 9.0);
+      var c = hex(0x7d6a2cu);
+      if (hs > 0.78) { c = hex(0xa8923cu); }
+      else if (hs < 0.16) { c = hex(0x4c5a22u); }
+      else if (hs < 0.22) { c = hex(0xb0502au); }
+      if (qv.x < -r * 0.2 && qv.y < -r * 0.2 && dist < r * 0.75) { c = mix(c, hex(0xe8d898u), 0.35); }
+      if (dist > rr - 1.0) { c = hex(0x3c3012u); }
+      else if (qv.y > r * 0.35) { c = c * 0.82; }
+      result = vec4f(c, 1.0);
+    }
+  }
+  if (result.a > 0.0) { result = vec4f(mix(result.rgb, deepc, L0.w * 0.45), 1.0); }
+  return result;
+}
+
 // one clump of grass blades; returns rgb + coverage
 fn clump(pf: vec2f, i: f32, vw: f32, vh: f32, top: f32, t: f32, front: bool) -> vec4f {
   var baseX: f32;
@@ -265,9 +320,16 @@ fn barbSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
   return vec4f(c, a);
 }
 
-fn shrimpSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
-  var lx = p.x - i32(f0.x);
-  var ly = p.y - i32(f0.y);
+fn shrimpSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
+  // rotate about the sprite centre with nearest sampling so it stays pixel-crisp (climbing the lolly)
+  let ctr = vec2f(f32(RW) * 0.5, f32(RH) * 0.5);
+  let q = vec2f(p) + 0.5 - (vec2f(f0.x, f0.y) + ctr);
+  if (dot(q, q) > 520.0) { return vec4f(0.0); }
+  let ca = cos(ang);
+  let sa = sin(ang);
+  let rl = floor(vec2f(q.x * ca + q.y * sa, -q.x * sa + q.y * ca) + ctr);
+  var lx = i32(rl.x);
+  var ly = i32(rl.y);
   if (lx < 0 || lx >= RW || ly < -2 || ly >= RH + 2) { return vec4f(0.0); }
   if (f0.z < 0.0) { lx = RW - 1 - lx; }
   // tail fan flicks
@@ -297,8 +359,8 @@ fn shrimpSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
   return vec4f(c, a);
 }
 
-fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
-  if (f1.w > 2.5) { return shrimpSample(p, f0, f1, t); }
+fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
+  if (f1.w > 2.5) { return shrimpSample(p, f0, f1, ang, t); }
   if (f1.w > 0.5) { return barbSample(p, f0, f1, t); }
   let fx = i32(f0.x);
   let fy = i32(f0.y);
@@ -419,16 +481,26 @@ fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
     }
   }
 
-  // fish, already sorted back to front
+  // fish, already sorted back to front, with the shrimp lolly slotted in at its depth
   let nF = i32(S.b.x);
+  var lollyDone = false;
   for (var i = 0; i < nF; i++) {
     let f0 = S.fish[i * 2];
     let f1 = S.fish[i * 2 + 1];
-    let s = fishSample(p, f0, f1, t);
+    if (!lollyDone && f0.w <= S.l0.w) {
+      lollyDone = true;
+      let lc = lollySample(pf, deep);
+      if (lc.a > 0.0) { col = lc.rgb; }
+    }
+    let s = fishSample(p, f0, f1, S.ang[i / 4][i % 4], t);
     if (s.a > 0.0) {
       let fcl = mix(s.rgb, deep, f0.w * 0.5);
       col = mix(col, fcl, s.a);
     }
+  }
+  if (!lollyDone) {
+    let lc = lollySample(pf, deep);
+    if (lc.a > 0.0) { col = lc.rgb; }
   }
 
   // front plants
@@ -467,6 +539,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function fail(msg) {
   document.getElementById('nogpu').style.display = 'grid';
+  document.getElementById('lolly').hidden = true;
   document.querySelector('.caption').style.display = 'none';
   if (msg) document.getElementById('why').insertAdjacentText('beforeend', ' ' + msg);
 }
@@ -523,6 +596,112 @@ async function main() {
 
   const approach = (v, to, max) => v + Math.sign(to - v) * Math.min(Math.abs(to - v), max);
 
+  // ---- shrimp lolly ----
+  // a wooden stick with a ball of food that sinks to the sand; shrimp climb it and nibble it down
+  const LOLLY_R = 14, LOLLY_LEN = 46;
+  // spots around the ball, as angles away from the stick's "up"; the stick end is left free
+  const SLOTS = [0, -1.0, 1.0, -2.0, 2.0, -2.7, 2.7];
+  let lolly = null;
+  const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+  const centerOf = f => [f.x + RW / 2, floorY(f.z) - RH + 3 - f.h + RH / 2];
+  function setCenter(f, cx, cy) { f.x = cx - RW / 2; f.h = floorY(f.z) - RH + 3 + RH / 2 - cy; }
+
+  function letGo(f) {
+    if (lolly && f.slot != null) lolly.slots[f.slot] = null;
+    f.lolly = null; f.slot = null;
+    f.mode = 'graze'; f.timer = rand(1, 2.5); f.th = 0; f.tx = f.x; f.tz = f.z = Math.max(0, f.z);
+  }
+
+  const lollyBtn = document.getElementById('lolly');
+  function dropLolly() {
+    for (const f of fish) if (f.lolly) letGo(f);
+    const z = rand(0.05, 0.35);
+    const baseX = Math.round(rand(vw * 0.3, vw * 0.7));
+    lolly = { baseX, baseY: -LOLLY_LEN - LOLLY_R - 4, restY: floorY(z) - 1, z, r: LOLLY_R,
+              tilt: 0, wob: rand(0, 6), landed: false, gone: 0, bx: 0, by: 0,
+              slots: SLOTS.map(() => null) };
+    lollyBtn.textContent = 'Drop a fresh lolly';
+  }
+  lollyBtn.addEventListener('click', dropLolly);
+
+  function updateLolly(dt) {
+    const L = lolly;
+    if (!L) return;
+    if (!L.landed) {
+      L.baseY += 18 * dt; L.wob += dt * 2.2;
+      L.tilt = Math.sin(L.wob) * 0.18;
+      if (L.baseY >= L.restY) { L.baseY = L.restY; L.landed = true; L.tilt = Math.round(L.tilt * 10) / 10; }
+    }
+    L.bx = L.baseX + Math.sin(L.tilt) * LOLLY_LEN;
+    L.by = L.baseY - Math.cos(L.tilt) * LOLLY_LEN;
+    const eaters = fish.filter(f => f.lolly === 'eat').length;
+    if (L.r > 0) L.r = Math.max(0, L.r - dt * 0.025 * eaters);
+    if (L.r < 2 && L.r > 0) { L.r = 0; for (const f of fish) if (f.lolly && f.lolly !== 'toLolly') letGo(f); }
+    if (L.r === 0) {
+      for (const f of fish) if (f.lolly) letGo(f);
+      L.gone += dt;
+      if (L.gone > 8) { lolly = null; lollyBtn.textContent = 'Drop a shrimp lolly'; }
+    }
+  }
+
+  // returns true when the lolly is driving this shrimp's movement for the frame
+  function lollyStep(f, dt) {
+    const L = lolly;
+    if (f.lolly && food.length) { letGo(f); return false; }
+    if (!f.lolly) {
+      if (free && f.mode !== 'swim' && Math.random() < dt * 0.6) {
+        f.lolly = 'toLolly';
+        f.side = f.x + RW / 2 < L.baseX ? -1 : 1;
+      } else return false;
+    }
+    if (!L || L.r < 2) { letGo(f); return false; }
+
+    const u = [L.bx - L.baseX, L.by - L.baseY];
+    const len = Math.hypot(u[0], u[1]); u[0] /= len; u[1] /= len;
+    const up = Math.atan2(u[1], u[0]);
+
+    if (f.lolly === 'toLolly') {
+      // walk over to the foot of the stick, at the lolly's depth
+      f.mode = 'lolly'; f.speed = 18; f.th = 0;
+      f.tx = L.baseX + f.side * 10 - RW / 2; f.tz = L.z;
+      if (Math.abs(f.tx - f.x) < 1.5 && Math.abs(f.z - L.z) < 0.02 && f.h < 0.5) {
+        f.lolly = 'climb'; f.s = 16; f.dir = f.side < 0 ? 1 : -1; f.z = L.z - 0.01;
+      }
+      return false;
+    }
+
+    let tx, ty, ta, speed;
+    if (f.lolly === 'climb') {
+      // legs on the stick, head up, inching toward the ball
+      f.s += 7 * dt;
+      ta = up + (f.dir < 0 ? Math.PI : 0);
+      const D = [-Math.sin(ta), Math.cos(ta)];
+      tx = L.baseX + u[0] * f.s - D[0] * 6; ty = L.baseY + u[1] * f.s - D[1] * 6;
+      speed = 14;
+      if (f.s >= len - L.r - 2) {
+        const k = L.slots.indexOf(null);
+        if (k < 0) { letGo(f); return false; }
+        L.slots[k] = f; f.slot = k; f.lolly = 'toSlot';
+      }
+    } else {
+      // perched on the ball, clinging diagonally with legs gripping and head tipped in to graze
+      const th = up + SLOTS[f.slot];
+      ta = th + Math.PI / 2 + f.dir * Math.PI / 4;
+      tx = L.bx + Math.cos(th) * (L.r + 8); ty = L.by + Math.sin(th) * (L.r + 8);
+      speed = f.lolly === 'toSlot' ? 9 : 4;
+    }
+    const [cx, cy] = centerOf(f);
+    const ddx = tx - cx, ddy = ty - cy, dd = Math.hypot(ddx, ddy);
+    const st = Math.min(dd, speed * dt);
+    if (dd > 0.01) setCenter(f, cx + ddx / dd * st, cy + ddy / dd * st);
+    if (f.lolly === 'toSlot' && dd < 1) f.lolly = 'eat';
+    f.ang = (f.ang || 0) + wrap(ta - (f.ang || 0)) * Math.min(1, dt * 5);
+    f.amp += (0 - f.amp) * Math.min(1, dt * 4);
+    f.phase += dt * (f.lolly === 'eat' ? 6 : 10);
+    f.tx = f.x; f.tz = f.z;
+    return true;
+  }
+
   // ---- fish ----
   // which species are in the tank; remembered between visits (iframe and fullscreen share it)
   const SPECIES = {
@@ -563,6 +742,7 @@ async function main() {
     try { localStorage.setItem(STORE, JSON.stringify(enabled)); } catch (e) {}
     const btn = document.querySelector(`[data-species="${species}"]`);
     if (btn) btn.setAttribute('aria-pressed', String(on));
+    if (species === 'shrimp') lollyBtn.hidden = !on;
     const mine = fish.filter(f => f.species === species);
     if (on) {
       // call back any that were on their way out, then top up the group
@@ -683,7 +863,10 @@ async function main() {
     const baseY = floorY(f.z) - RH + 3;
     const mouthX = f.x + (f.dir > 0 ? MOUTH : RW - 1 - MOUTH);
 
-    if (f.leaving) { f.mode = 'leave'; f.tx = f.exitX; f.th = 0; f.speed = 20; f.flick = 0; }
+    if (f.leaving) {
+      if (f.lolly) letGo(f);
+      f.mode = 'leave'; f.tx = f.exitX; f.th = 0; f.speed = 20; f.flick = 0;
+    }
 
     // the escape flick: a quick backward dart, tail first
     if (f.flick > 0) {
@@ -695,7 +878,10 @@ async function main() {
       return;
     }
 
-    if (food.length && !f.leaving) {
+    if (!f.leaving && lollyStep(f, dt)) return;
+    if (!f.lolly) f.ang = (f.ang || 0) * Math.max(0, 1 - dt * 4);
+
+    if (food.length && !f.leaving && !f.lolly) {
       let best = null, bd = 1e9;
       for (const p of food) {
         const dd = Math.abs(p.x - mouthX) + Math.abs(p.z - f.z) * 60;
@@ -748,6 +934,7 @@ async function main() {
     }
 
     updateSchool(dt);
+    updateLolly(dt);
     for (const f of fish) {
       if (f.species === 'barb') { updateBarb(f, dt); continue; }
       if (f.species === 'shrimp') { updateShrimp(f, dt); continue; }
@@ -837,7 +1024,12 @@ async function main() {
       const code = barb ? (f.female ? 2 : 1) : shrimp ? 3 + f.variant : 0;
       uData.set([Math.round(f.x), y, f.dir, f.z], 8 + i * 8);
       uData.set([f.phase, f.amp, Math.round(floorY(f.z)), code], 12 + i * 8);
+      uData[U_ANG * 4 + i] = f.ang || 0;
     });
+    if (lolly) {
+      uData.set([lolly.bx, lolly.by, lolly.r, lolly.z], U_LOLLY * 4);
+      uData.set([lolly.baseX, lolly.baseY, 1, 1 - lolly.r / LOLLY_R], U_LOLLY * 4 + 4);
+    }
     bubbles.forEach((b, i) => uData.set([b.x, b.y, b.r, b.z], U_BUB * 4 + i * 4));
     food.forEach((p, i) => uData.set([p.x, p.y, p.z, 0], U_FOOD * 4 + i * 4));
     device.queue.writeBuffer(uBuf, 0, uData);
