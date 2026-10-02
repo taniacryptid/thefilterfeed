@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router'
 
-import { type Post } from 'content-collections'
+import { type BlogPost, formatDate, sortByDate } from '@/lib/posts'
 
-export function PostCard({ post }: { post: Post }) {
+export function PostCard({ post }: { post: BlogPost }) {
   return (
     <article className="pixel-frame bg-deep pxshadow-sm group h-full transition-all duration-200 hover:-translate-y-1 hover:bg-water">
       {post.image && (
@@ -60,9 +60,9 @@ export default function BlogPosts({
   posts,
 }: {
   title: string
-  posts: Post[]
+  posts: BlogPost[]
 }) {
-  const sorted = [...posts].sort((a, b) => (a.date < b.date ? 1 : -1))
+  const sorted = sortByDate(posts)
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
@@ -89,10 +89,4 @@ export default function BlogPosts({
       )}
     </div>
   )
-}
-
-function formatDate(date: string): string {
-  const d = new Date(date)
-  if (Number.isNaN(d.getTime())) return date
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }

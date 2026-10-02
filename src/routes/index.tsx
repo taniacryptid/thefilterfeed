@@ -1,16 +1,17 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 
-import { allPosts } from 'content-collections'
-
 import AquariumGame from '@/components/AquariumGame'
 import { PostCard } from '@/components/blog-posts'
+import { type BlogPost } from '@/lib/posts'
+import { listPosts } from '@/server/posts'
 
 export const Route = createFileRoute('/')({
+  loader: () => listPosts(),
   component: App,
 })
 
 function App() {
-  const recent = [...allPosts].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 2)
+  const recent = (Route.useLoaderData() as BlogPost[]).slice(0, 2)
 
   return (
     <main>

@@ -267,3 +267,112 @@ body {
   font-family: var(--font-pixel);
   color: var(--color-ink);
 }
+
+/* ---- editor + login UI ---- */
+.btn-px,
+.btn-px-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  font-family: var(--font-pixel);
+  font-size: 1rem;
+  border: 3px solid var(--color-ink);
+  box-shadow: 3px 3px 0 0 rgba(14, 34, 41, 0.9);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 80ms, background-color 120ms, color 120ms;
+}
+.btn-px {
+  background: var(--color-clay);
+  color: var(--color-ink);
+}
+.btn-px:hover {
+  background: var(--color-sand);
+  color: var(--color-abyss);
+}
+.btn-px-ghost {
+  background: var(--color-abyss);
+  color: var(--color-inksoft);
+  border-color: var(--color-kelp);
+}
+.btn-px-ghost:hover {
+  color: var(--color-ink);
+  background: var(--color-kelp);
+}
+.btn-px:active,
+.btn-px-ghost:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 rgba(14, 34, 41, 0.9);
+}
+.btn-px:disabled,
+.btn-px-ghost:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.btn-px-danger {
+  background: var(--color-abyss);
+  color: var(--color-clay);
+  border-color: var(--color-clay);
+}
+.btn-px-danger:hover {
+  background: var(--color-clay);
+  color: var(--color-ink);
+}
+
+.link-px {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: var(--font-pixel);
+  font-size: 0.875rem;
+  color: var(--color-surf);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.link-px:hover {
+  color: var(--color-foam);
+}
+
+.field-px {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.field-px > span {
+  font-family: var(--font-pixel);
+  font-size: 0.875rem;
+  color: var(--color-surf);
+}
+.field-px small {
+  font-size: 0.75rem;
+  color: var(--color-inksoft);
+  opacity: 0.8;
+}
+.field-px input,
+.field-px textarea,
+.field-px select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.75rem;
+  background: var(--color-abyss);
+  color: var(--color-ink);
+  border: 2px solid var(--color-kelp);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  border-radius: 0;
+  outline: none;
+}
+.field-px textarea {
+  min-height: 24rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+.field-px input:focus,
+.field-px textarea:focus,
+.field-px select:focus {
+  border-color: var(--color-surf);
+  box-shadow: 3px 3px 0 0 var(--color-kelp);
+}
