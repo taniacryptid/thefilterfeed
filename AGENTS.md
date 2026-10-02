@@ -71,7 +71,11 @@ registry plus a per-species update function (corys roam the sand, barbs school m
 pick over the sand with short swims and backward escape flicks). The in-tank toggle buttons (`[data-species]`) call
 `setSpecies()`; fish swim off-screen when removed, and the choice persists in localStorage
 (`filterfeed:tank`). Up to `MAX_FISH` (20) fish total. To add a species: new sprite + palette fn
-in WGSL, a species code, a `SPECIES` entry, an update function, and a toggle button. The snapshot
+in WGSL, a species code, a `SPECIES` entry, an update function, and a toggle button. The
+"Drop a shrimp lolly" button (`#lolly`, hidden while shrimp are toggled off) drops a stick with a
+food ball that shrimp climb and nibble down (`lollyStep()`); climbing shrimp are rotated in the
+shader via the per-fish `ang` array, and the lolly itself lives in the `l0`/`l1` uniforms, both
+appended after `food` so the older uniform offsets are unchanged. The snapshot
 script reuses `buildSprites()` and the `U_*` layout constants, so keep them in the extracted block.
 
 ### Design System
