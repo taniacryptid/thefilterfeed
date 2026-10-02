@@ -18,12 +18,17 @@ function RouteComponent() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <article className="rise">
+      <article className="rise" data-sb-object-id={post.filePath}>
         <p className="m-0 font-pixel text-sm text-surf">// field note</p>
-        <h1 className="mt-1 mb-2 font-pixel text-3xl font-semibold leading-tight text-ink sm:text-4xl">
+        <h1
+          data-sb-field-path={post.filePath && 'title'}
+          className="mt-1 mb-2 font-pixel text-3xl font-semibold leading-tight text-ink sm:text-4xl"
+        >
           {post.title}
         </h1>
-        <p className="mb-6 text-sm text-inksoft">{formatDate(post.date)}</p>
+        <p className="mb-6 text-sm text-inksoft" data-sb-field-path={post.filePath && 'date'}>
+          {formatDate(post.date)}
+        </p>
 
         {post.image && (
           <img
@@ -35,7 +40,10 @@ function RouteComponent() {
           />
         )}
 
-        <div className="flex flex-wrap items-center gap-2 pb-8">
+        <div
+          className="flex flex-wrap items-center gap-2 pb-8"
+          data-sb-field-path={post.filePath && 'categories'}
+        >
           {post.categories.map((cat: string) => (
             <Link
               key={cat}
@@ -51,6 +59,7 @@ function RouteComponent() {
         {post.content.trim() && (
           <div
             className="prose-reef"
+            data-sb-field-path={post.filePath && 'markdown_content'}
             dangerouslySetInnerHTML={{ __html: marked(post.content) }}
           />
         )}

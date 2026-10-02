@@ -34,6 +34,7 @@ async function loadAll(): Promise<BlogPost[]> {
       content: p.content,
       published: true,
       source: 'file',
+      filePath: `content/posts/${p._meta.filePath}`,
     })
   }
   for (const r of rows) {

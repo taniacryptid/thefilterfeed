@@ -31,6 +31,8 @@
     "@content-collections/core": "0.13.1",
     "@content-collections/vite": "0.2.9",
     "@netlify/vite-plugin-tanstack-start": "1.3.19",
+    "@stackbit/cms-git": "^1.0.38",
+    "@stackbit/types": "^2.1.15",
     "@tailwindcss/vite": "4.2.2",
     "@types/node": "22.20.1",
     "@types/react": "19.2.18",

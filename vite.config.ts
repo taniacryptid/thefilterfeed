@@ -7,6 +7,8 @@ import netlify from '@netlify/vite-plugin-tanstack-start'
 import contentCollections from '@content-collections/vite'
 
 const config = defineConfig({
+  // The Visual Editor previews the dev server from its own hostname.
+  server: { allowedHosts: true },
   plugins: [
     contentCollections(),
     viteTsConfigPaths({
