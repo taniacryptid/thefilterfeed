@@ -44,13 +44,14 @@
 </style>
 </head>
 <body>
-<canvas id="c" aria-label="Pixel-art community aquarium with banded corydoras and cherry barbs"></canvas>
+<canvas id="c" aria-label="Pixel-art community aquarium with banded corydoras, cherry barbs and cherry shrimp"></canvas>
 <div class="caption">
   <h1>The Filter Feed</h1>
   <p>A community tank drawn in WebGPU. Tap the water to drop food.</p>
   <div class="tank-ctl" role="group" aria-label="Fish in the tank">
     <button type="button" data-species="cory" aria-pressed="true" title="Corydoras barbatus" style="--swatch: #d28c3c"><span class="box"></span>Banded corydoras</button>
     <button type="button" data-species="barb" aria-pressed="true" title="Puntius titteya" style="--swatch: #c8282c"><span class="box"></span>Cherry barbs</button>
+    <button type="button" data-species="shrimp" aria-pressed="true" title="Neocaridina davidi" style="--swatch: #cd2a24"><span class="box"></span>Cherry shrimp</button>
   </div>
 </div>
 <div class="nogpu" id="nogpu"><div>
@@ -106,15 +107,38 @@ const BARB = [
 const BW = BARB[0].length, BH = BARB.length;
 const BCMAP = {'.':0,'o':1,'d':2,'b':3,'l':4,'s':5,'f':6,'a':7,'e':8,'h':9,'k':10};
 
+// cherry shrimp (Neocaridina davidi); one sprite, four color morphs in the shader
+const SHRIMP = [
+'..............aaaaaaaaaaaaaa............',
+'............aa..............aa..........',
+'...........a..................a.........',
+'.................ooooooooooooo.a........',
+'..............oooRRRRRRRRRRRRRoa.....oo.',
+'...........oooRRrRRRrRRRRppRRRRoooooo...',
+'.........ooRRrRRRrRRRrRRRpppRRRRRo......',
+'.......ooRRrRRRrRRRrRRRRRRpRRRReeo......',
+'......oRRrRRRrRRRrRRRRRRRRRRRRRheoaaaaaa',
+'.....oRRrRRRrRRRrRRRRRRRRRRRRRRRo.......',
+'.....oRRoRRrooRrooooRRRRRRRRRRRoaaa.....',
+'....oRRRooloolloo..ollollolloo....aaa...',
+'....oRRo.l..l.l....l.l..l.l..l..........',
+'...oRrRo.l..l.l...l..l..l..l..l.........',
+'..oRRrRRo.........l...l..l..l..l........',
+'.oRro.oRo...............................',
+'.oo....o................................'];
+const RW = SHRIMP[0].length, RH = SHRIMP.length;
+const RCMAP = {'.':0,'o':1,'R':2,'r':3,'p':4,'e':5,'h':6,'a':7,'l':8};
+
 // uniform layout, in vec4s: header (2), fish pairs, bubbles (48), food (24)
-const MAX_FISH = 16;
+const MAX_FISH = 20;
 const U_BUB = 2 + MAX_FISH * 2, U_FOOD = U_BUB + 48, U_VEC4 = U_FOOD + 24;
 
-// both sprites packed into one storage buffer: corydoras first, then the barb
+// all sprites packed into one storage buffer: corydoras first, then the barb, then the shrimp
 function buildSprites() {
-  const data = new Uint32Array(SW * SH + BW * BH);
+  const data = new Uint32Array(SW * SH + BW * BH + RW * RH);
   SPRITE.forEach((row, y) => [...row].forEach((ch, x) => data[y * SW + x] = CMAP[ch] || 0));
   BARB.forEach((row, y) => [...row].forEach((ch, x) => data[SW * SH + y * BW + x] = BCMAP[ch] || 0));
+  SHRIMP.forEach((row, y) => [...row].forEach((ch, x) => data[SW * SH + BW * BH + y * RW + x] = RCMAP[ch] || 0));
   return data;
 }
 
@@ -134,6 +158,9 @@ const SH: i32 = ${SH};
 const BW: i32 = ${BW};
 const BH: i32 = ${BH};
 const BOFF: i32 = ${SW * SH};
+const RW: i32 = ${RW};
+const RH: i32 = ${RH};
+const ROFF: i32 = ${SW * SH + BW * BH};
 
 @vertex fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
   var p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
@@ -172,6 +199,18 @@ fn barbPal(i: u32, female: bool) -> vec3f {
   var f = array<u32, 11>(0x000000u, 0x1e1610u, 0x6e5a3au, 0xa88c5cu, 0xdcc8a0u,
                          0x2a1e14u, 0xe0cc94u, 0xb0904eu, 0x0f0a08u, 0xffffffu, 0xc8b080u);
   return hex(select(m[i], f[i], female));
+}
+
+// species 3..6 = shrimp morphs: cherry red, orange sakura, blue dream, yellow
+fn shrimpPal(i: u32, v: i32) -> vec3f {
+  var red = array<u32, 9>(0u, 0x46100eu, 0xcd2a24u, 0x8c1616u, 0xfa967du, 0x0a0606u, 0xffffffu, 0xe17d69u, 0xeb785fu);
+  var ora = array<u32, 9>(0u, 0x4a2008u, 0xe8761eu, 0xb04e10u, 0xffc080u, 0x0a0606u, 0xffffffu, 0xf0a070u, 0xf09860u);
+  var blu = array<u32, 9>(0u, 0x0c1e3cu, 0x2c5cc8u, 0x1a3a8au, 0x8ab8ffu, 0x050608u, 0xffffffu, 0x7c9ee0u, 0x6c90d8u);
+  var yel = array<u32, 9>(0u, 0x4a3a08u, 0xe8c428u, 0xb08e14u, 0xfff09au, 0x0a0606u, 0xffffffu, 0xf0d878u, 0xe8cc60u);
+  if (v == 1) { return hex(ora[i]); }
+  if (v == 2) { return hex(blu[i]); }
+  if (v == 3) { return hex(yel[i]); }
+  return hex(red[i]);
 }
 
 // one clump of grass blades; returns rgb + coverage
@@ -226,7 +265,40 @@ fn barbSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
   return vec4f(c, a);
 }
 
+fn shrimpSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
+  var lx = p.x - i32(f0.x);
+  var ly = p.y - i32(f0.y);
+  if (lx < 0 || lx >= RW || ly < -2 || ly >= RH + 2) { return vec4f(0.0); }
+  if (f0.z < 0.0) { lx = RW - 1 - lx; }
+  // tail fan flicks
+  if (lx < 9) {
+    let k = f32(9 - lx) / 9.0;
+    ly = ly - i32(round(sin(f1.x * 0.5) * f1.y * k * 2.0));
+  }
+  // antennae sway
+  if (ly <= 3 || (ly >= 8 && lx >= 33)) {
+    ly = ly + i32(round(sin(t * 1.7 + f0.x * 0.1 + f32(lx) * 0.15) * 0.7));
+  }
+  if (ly < 0 || ly >= RH) { return vec4f(0.0); }
+  var idx = sprite[u32(ROFF + ly * RW + lx)];
+  // walking legs and swimmerets paddle in alternating waves
+  if (ly >= 12 && lx >= 8 && lx <= 32) {
+    let step = select(1, -1, sin(f1.x + f32(lx) * 0.9) > 0.0);
+    let sx = clamp(lx + step * select(0, 1, ly >= 13), 0, RW - 1);
+    let alt = sprite[u32(ROFF + ly * RW + sx)];
+    if (idx == 8u || alt == 8u) { idx = alt; }
+  }
+  if (idx == 0u) { return vec4f(0.0); }
+  let c = shrimpPal(idx, i32(round(f1.w)) - 3);
+  var a = 1.0;
+  if (idx == 7u) { a = 0.8; }
+  if (idx == 8u) { a = 0.85; }
+  if (idx == 2u || idx == 3u) { a = 0.94; }
+  return vec4f(c, a);
+}
+
 fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
+  if (f1.w > 2.5) { return shrimpSample(p, f0, f1, t); }
   if (f1.w > 0.5) { return barbSample(p, f0, f1, t); }
   let fx = i32(f0.x);
   let fy = i32(f0.y);
@@ -326,10 +398,11 @@ fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, t: f32) -> vec4f {
     for (var i = 0; i < nF; i++) {
       let f0 = S.fish[i * 2];
       let f1 = S.fish[i * 2 + 1];
-      let barb = f1.w > 0.5;
-      let cx = f0.x + select(f32(SW), f32(BW), barb) * 0.5;
-      let lift = clamp((f1.z - (f0.y + select(f32(SH), f32(BH), barb))) / 50.0, 0.0, 1.0);
-      let hw = (select(15.0, 9.0, barb) - f0.w * 4.0) * (1.0 - lift * 0.4);
+      let barb = f1.w > 0.5 && f1.w < 2.5;
+      let shrimp = f1.w > 2.5;
+      let cx = f0.x + select(select(f32(SW), f32(BW), barb), f32(RW), shrimp) * 0.5;
+      let lift = clamp((f1.z - (f0.y + select(select(f32(SH), f32(BH), barb), f32(RH), shrimp))) / 50.0, 0.0, 1.0);
+      let hw = (select(select(15.0, 9.0, barb), 12.0, shrimp) - f0.w * 4.0) * (1.0 - lift * 0.4);
       let dy = pf.y - f1.z;
       if (abs(pf.x - cx) < hw && dy >= -1.0 && dy <= 1.0 && d < 0.75 - lift * 0.6) { col = col * 0.78; }
     }
@@ -455,9 +528,10 @@ async function main() {
   const SPECIES = {
     cory: { w: SW, count: () => Math.min(7, 3 + Math.floor(vw / 160)) },
     barb: { w: BW, count: () => Math.min(7, 4 + Math.floor(vw / 180)) },
+    shrimp: { w: RW, count: () => Math.min(6, 3 + Math.floor(vw / 200)) },
   };
   const STORE = 'filterfeed:tank';
-  const enabled = { cory: true, barb: true };
+  const enabled = { cory: true, barb: true, shrimp: true };
   try { Object.assign(enabled, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
 
   let fish = [];
@@ -471,7 +545,13 @@ async function main() {
     };
     f.tx = entering ? rand(0, vw - w) : f.x; f.tz = f.z;
     if (species === 'cory') { if (entering) { f.mode = 'wander'; f.speed = rand(14, 20); } }
-    else {
+    else if (species === 'shrimp') {
+      // mostly cherry red, with the odd sakura, blue dream or yellow
+      f.variant = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 4);
+      f.amp = 0; f.speed = 6; f.flick = 0;
+      f.mode = entering ? 'walk' : 'graze';
+      if (entering) f.speed = rand(8, 12);
+    } else {
       f.female = Math.random() < 0.5;
       f.y = rand(12, top - BH - 14); f.ty = f.y;
       f.ox = 0; f.oy = 0; f.oz = 0; f.timer = 0; f.mode = 'school';
@@ -486,7 +566,7 @@ async function main() {
     const mine = fish.filter(f => f.species === species);
     if (on) {
       // call back any that were on their way out, then top up the group
-      for (const f of mine) if (f.leaving) { f.leaving = false; f.mode = f.species === 'cory' ? 'rest' : 'school'; f.timer = 0; }
+      for (const f of mine) if (f.leaving) { f.leaving = false; f.mode = { cory: 'rest', barb: 'school', shrimp: 'graze' }[f.species]; f.timer = 0; }
       for (let i = mine.length; i < SPECIES[species].count() && fish.length < MAX_FISH; i++) fish.push(makeFish(species, entering));
     } else {
       // swim out past the nearest edge rather than vanishing
@@ -586,6 +666,79 @@ async function main() {
     f.phase += dt * (moving ? 7 + Math.abs(vx) * 0.5 : 3.5);
   }
 
+  // cherry shrimp: pick over the sand, take short swims, and nibble food slowly
+  const MOUTH = 33, MOUTH_Y = 10;
+  function pickWalk(f) {
+    if (Math.random() < 0.25) {
+      // short swim: lift off the sand and paddle somewhere
+      f.mode = 'swim'; f.th = rand(8, 40); f.speed = rand(10, 18);
+      f.tx = rand(-8, vw - RW + 8); f.tz = rand(0, 0.9);
+    } else {
+      f.mode = 'walk'; f.th = 0; f.speed = rand(3, 7);
+      f.tx = Math.max(-8, Math.min(vw - RW + 8, f.x + rand(-60, 60)));
+      f.tz = Math.max(0, Math.min(0.9, f.z + rand(-0.25, 0.25)));
+    }
+  }
+  function updateShrimp(f, dt) {
+    const baseY = floorY(f.z) - RH + 3;
+    const mouthX = f.x + (f.dir > 0 ? MOUTH : RW - 1 - MOUTH);
+
+    if (f.leaving) { f.mode = 'leave'; f.tx = f.exitX; f.th = 0; f.speed = 20; f.flick = 0; }
+
+    // the escape flick: a quick backward dart, tail first
+    if (f.flick > 0) {
+      f.flick -= dt;
+      f.x -= f.dir * 55 * dt;
+      f.amp = 2.2; f.phase += dt * 30;
+      f.x = Math.max(-RW / 2, Math.min(vw - RW / 2, f.x));
+      f.tx = f.x;
+      return;
+    }
+
+    if (food.length && !f.leaving) {
+      let best = null, bd = 1e9;
+      for (const p of food) {
+        const dd = Math.abs(p.x - mouthX) + Math.abs(p.z - f.z) * 60;
+        if (dd < bd) { bd = dd; best = p; }
+      }
+      f.mode = 'food';
+      const want = best.x > f.x + RW / 2 ? 1 : -1;
+      f.tx = want > 0 ? best.x - MOUTH : best.x - (RW - 1 - MOUTH);
+      f.tz = best.z;
+      f.th = best.landed ? 0 : Math.max(0, baseY + MOUTH_Y - best.y);
+      f.speed = 16;
+      if (best.landed && Math.abs(best.x - mouthX) < 2.5 && Math.abs(best.z - f.z) < 0.06) {
+        // shrimp pick at food for a while before it's gone
+        best.bites = (best.bites || 0) + dt;
+        if (best.bites > 1.6) food.splice(food.indexOf(best), 1);
+      }
+    } else if (f.mode === 'food') {
+      f.mode = 'graze'; f.timer = rand(1, 3);
+    }
+
+    f.timer -= dt;
+    if (f.mode === 'graze' && f.timer <= 0) {
+      if (Math.random() < 0.1) { f.flick = rand(0.18, 0.3); f.timer = rand(1, 3); return; }
+      pickWalk(f);
+    }
+
+    const dx = f.tx - f.x;
+    const sp = f.mode === 'graze' ? 0 : f.speed;
+    const vx = Math.sign(dx) * Math.min(Math.abs(dx) * 2, sp);
+    f.x += vx * dt;
+    if (sp > 0 && Math.abs(dx) > 2) f.dir = dx > 0 ? 1 : -1;
+    f.z = approach(f.z, f.tz, 0.12 * dt);
+    f.h = approach(f.h, f.th, 10 * dt);
+
+    if (f.mode === 'swim' && Math.abs(dx) < 2) f.th = 0;
+    if ((f.mode === 'walk' || f.mode === 'swim') && Math.abs(dx) < 1 && f.h < 0.5) { f.mode = 'graze'; f.timer = rand(1.5, 5); }
+
+    const busy = f.mode === 'graze' || f.mode === 'food';
+    f.amp += ((f.h > 2 ? 0.5 : 0) - f.amp) * Math.min(1, dt * 4);
+    // legs cycle faster when walking or swimming, a slow fidget when grazing
+    f.phase += dt * (Math.abs(vx) > 0.5 ? 8 + Math.abs(vx) * 0.8 : f.h > 2 ? 14 : busy ? 5 : 2);
+  }
+
   function update(dt) {
     for (const p of food) {
       if (!p.landed) {
@@ -597,6 +750,7 @@ async function main() {
     updateSchool(dt);
     for (const f of fish) {
       if (f.species === 'barb') { updateBarb(f, dt); continue; }
+      if (f.species === 'shrimp') { updateShrimp(f, dt); continue; }
       const baseY = floorY(f.z) - SH + 2;
       if (f.leaving) { f.mode = 'leave'; f.tx = f.exitX; f.th = 0; f.speed = 24; }
       const mouthX = f.x + (f.dir > 0 ? SW - 2 : 1);
@@ -676,10 +830,13 @@ async function main() {
     const sorted = fish.slice(0, MAX_FISH).sort((a, b) => b.z - a.z);
     uData.set([sorted.length, bubbles.length, food.length, top], 4);
     sorted.forEach((f, i) => {
-      const barb = f.species === 'barb';
-      const y = barb ? Math.round(f.y) : Math.round(floorY(f.z) - SH + 2 - f.h + (f.bob || 0));
+      const barb = f.species === 'barb', shrimp = f.species === 'shrimp';
+      const y = barb ? Math.round(f.y)
+        : shrimp ? Math.round(floorY(f.z) - RH + 3 - f.h)
+        : Math.round(floorY(f.z) - SH + 2 - f.h + (f.bob || 0));
+      const code = barb ? (f.female ? 2 : 1) : shrimp ? 3 + f.variant : 0;
       uData.set([Math.round(f.x), y, f.dir, f.z], 8 + i * 8);
-      uData.set([f.phase, f.amp, Math.round(floorY(f.z)), barb ? (f.female ? 2 : 1) : 0], 12 + i * 8);
+      uData.set([f.phase, f.amp, Math.round(floorY(f.z)), code], 12 + i * 8);
     });
     bubbles.forEach((b, i) => uData.set([b.x, b.y, b.r, b.z], U_BUB * 4 + i * 4));
     food.forEach((p, i) => uData.set([p.x, p.y, p.z, 0], U_FOOD * 4 + i * 4));

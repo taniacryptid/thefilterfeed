@@ -49,7 +49,7 @@ export default function AquariumGame() {
             {embedded && (
               <iframe
                 src={GAME_URL}
-                title="The Filter Feed — an interactive WebGPU pixel aquarium with corydoras and cherry barbs"
+                title="The Filter Feed — an interactive WebGPU pixel aquarium with corydoras, cherry barbs and cherry shrimp"
                 className="absolute inset-0 h-full w-full border-0"
                 loading="lazy"
                 allow="fullscreen"
@@ -124,7 +124,7 @@ export default function AquariumGame() {
               <span className="blink text-surf" aria-hidden="true" />
             </h1>
             <p className="mt-1 text-sm text-inksoft">
-              An interactive community tank of banded corydoras and cherry barbs, rendered live in
+              An interactive community tank of banded corydoras, cherry barbs and cherry shrimp, rendered live in
               WebGPU — my fishkeeping notes live just below the waterline.
             </p>
           </div>

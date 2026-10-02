@@ -5,7 +5,7 @@ This document provides an overview of the project structure for developers and A
 ## Project Overview
 
 **The Filter Feed** — a personal fishkeeping blog whose homepage is an interactive pixel-art
-aquarium (banded corydoras + cherry barbs, toggleable per species) rendered live in WebGPU. Built with TanStack Start and deployed on
+aquarium (banded corydoras + cherry barbs + cherry shrimp, toggleable per species) rendered live in WebGPU. Built with TanStack Start and deployed on
 Netlify.
 
 ### Tech Stack
@@ -64,12 +64,13 @@ React wrapper (`AquariumGame.tsx`) only handles detection/fallback UI around the
 ### Species in the tank
 
 Each species is a sprite string array in the game file (`SPRITE` = corydoras, `BARB` = cherry
-barb) packed into one storage buffer by `buildSprites()`. Every fish's second uniform vec4 carries
-a species code in `.w` (0 cory, 1 male barb, 2 female barb); the shader branches on it for sprite
-and palette. JS behaviour lives in the `SPECIES` registry plus a per-species update function (corys
-roam the sand, barbs school mid-water). The in-tank toggle buttons (`[data-species]`) call
+barb, `SHRIMP` = cherry shrimp) packed into one storage buffer by `buildSprites()`. Every fish's second uniform vec4 carries
+a species code in `.w` (0 cory, 1 male barb, 2 female barb, 3–6 shrimp morphs: red, orange, blue,
+yellow); the shader branches on it for sprite and palette. JS behaviour lives in the `SPECIES`
+registry plus a per-species update function (corys roam the sand, barbs school mid-water, shrimp
+pick over the sand with short swims and backward escape flicks). The in-tank toggle buttons (`[data-species]`) call
 `setSpecies()`; fish swim off-screen when removed, and the choice persists in localStorage
-(`filterfeed:tank`). Up to `MAX_FISH` (16) fish total. To add a species: new sprite + palette fn
+(`filterfeed:tank`). Up to `MAX_FISH` (20) fish total. To add a species: new sprite + palette fn
 in WGSL, a species code, a `SPECIES` entry, an update function, and a toggle button. The snapshot
 script reuses `buildSprites()` and the `U_*` layout constants, so keep them in the extracted block.
 
