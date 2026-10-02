@@ -647,8 +647,8 @@ async function main() {
   // returns true when the lolly is driving this shrimp's movement for the frame
   function lollyStep(f, dt) {
     const L = lolly;
+    if (f.lolly && food.length) { letGo(f); return false; }
     if (!f.lolly) {
-      const free = L && L.landed && L.r >= 2 && L.slots.includes(null) && !food.length;
       if (free && f.mode !== 'swim' && Math.random() < dt * 0.6) {
         f.lolly = 'toLolly';
         f.side = f.x + RW / 2 < L.baseX ? -1 : 1;
