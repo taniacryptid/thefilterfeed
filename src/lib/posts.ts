@@ -34,6 +34,20 @@ export const POST_IMAGES = [
   'water-change.png',
 ]
 
+// Post header size: the snapshot script and the editor's tank camera both
+// render at exactly this, and cards/detail pages crop to the same 15:8 ratio.
+export const HEADER_WIDTH = 1200
+export const HEADER_HEIGHT = 640
+
+// Images captured in the editor live in Netlify Blobs and are stored on posts
+// as "snapshots/<key>.png"; anything else is a filename in public/img/.
+export const SNAPSHOT_PREFIX = 'snapshots/'
+
+export function postImageSrc(image: string, width: number): string {
+  const path = image.startsWith(SNAPSHOT_PREFIX) ? `/${image}` : `/img/${image}`
+  return `/.netlify/images?url=${path}&w=${width}&fm=webp`
+}
+
 export function formatDate(date: string): string {
   const d = new Date(date)
   if (Number.isNaN(d.getTime())) return date

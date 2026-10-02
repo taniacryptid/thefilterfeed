@@ -51,6 +51,7 @@
   #lolly:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #3a1a0c; }
   #lolly:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
   #lolly[hidden] { display: none; }
+  .snap .caption h1, .snap .caption p { display: none; }
   @media (max-width: 520px) { .caption { padding-left: 14px; } #lolly { right: 12px; bottom: 12px; } }
 </style>
 </head>
@@ -571,6 +572,10 @@ fn fishSample(p: vec2i, f0: vec4f, f1: vec4f, ang: f32, t: f32) -> vec4f {
 `;
 
 const canvas = document.getElementById('c');
+// ?snap = header-snapshot mode for the editor: the canvas is locked to the
+// 1200x640 post-header size at a whole-pixel scale, and snapTank() grabs a frame.
+const SNAP = new URLSearchParams(location.search).has('snap');
+if (SNAP) document.documentElement.classList.add('snap');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function fail(msg) {
@@ -615,6 +620,12 @@ async function main() {
   // ---- virtual pixel space ----
   let scale = 4, vw = 320, vh = 160, top = 120;
   function resize() {
+    if (SNAP) {
+      canvas.width = 1200; canvas.height = 640;
+      scale = 4; vw = 300; vh = 160;
+      top = Math.round(vh - Math.max(34, vh * 0.26));
+      return;
+    }
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const W = Math.max(1, Math.min(8192, Math.floor(innerWidth * dpr)));
     const H = Math.max(1, Math.min(8192, Math.floor(innerHeight * dpr)));
@@ -1087,8 +1098,15 @@ async function main() {
     pass.draw(3);
     pass.end();
     device.queue.submit([enc.finish()]);
+    // read back in the same task as the submit, while the frame is still the drawing buffer
+    if (snapWaiting.length) {
+      const waiting = snapWaiting.splice(0);
+      canvas.toBlob(b => waiting.forEach(fn => fn(b)), 'image/png');
+    }
     requestAnimationFrame(frame);
   }
+  const snapWaiting = [];
+  if (SNAP) window.snapTank = () => new Promise(res => snapWaiting.push(res));
   requestAnimationFrame(frame);
 }
 main().catch(e => { console.error(e); fail('Setup failed: ' + e.message); });
