@@ -8,10 +8,11 @@
 
 const html = await Deno.readTextFile(new URL('../public/game/index.html', import.meta.url))
 const src = html.slice(html.indexOf('const SPRITE'), html.indexOf('const canvas ='))
-const { SH, WGSL, MAX_FISH, U_BUB, U_FOOD, U_VEC4, buildSprites } = new Function(
-  `${src}; return { SH, WGSL, MAX_FISH, U_BUB, U_FOOD, U_VEC4, buildSprites };`,
+const { SH, RH, WGSL, MAX_FISH, U_BUB, U_FOOD, U_VEC4, buildSprites } = new Function(
+  `${src}; return { SH, RH, WGSL, MAX_FISH, U_BUB, U_FOOD, U_VEC4, buildSprites };`,
 )() as {
   SH: number
+  RH: number
   WGSL: string
   MAX_FISH: number
   U_BUB: number
@@ -20,12 +21,14 @@ const { SH, WGSL, MAX_FISH, U_BUB, U_FOOD, U_VEC4, buildSprites } = new Function
   buildSprites: () => Uint32Array
 }
 
-// corydoras sit on the sand (h lifts them); cherry barbs ('barb' / 'barb-f') are placed by y
+// corydoras and shrimp sit on the sand (h lifts them); cherry barbs ('barb' / 'barb-f') are placed by y.
+// shrimp morph: 0 cherry red, 1 orange sakura, 2 blue dream, 3 yellow
 type Fish = {
   x: number
   z: number
   dir: 1 | -1
-  species?: 'cory' | 'barb' | 'barb-f'
+  species?: 'cory' | 'barb' | 'barb-f' | 'shrimp'
+  morph?: 0 | 1 | 2 | 3
   y?: number
   h?: number
   bob?: number
@@ -158,8 +161,10 @@ for (const scene of SCENES) {
   const food = scene.food ?? []
   uData.set([fish.length, bubbles.length, food.length, top], 4)
   fish.forEach((f, i) => {
-    const species = f.species === 'barb' ? 1 : f.species === 'barb-f' ? 2 : 0
-    const y = species ? Math.round(f.y ?? 0) : Math.round(floorY(f.z) - SH + 2 - (f.h ?? 0) + (f.bob ?? 0))
+    const species = f.species === 'barb' ? 1 : f.species === 'barb-f' ? 2 : f.species === 'shrimp' ? 3 + (f.morph ?? 0) : 0
+    const y = species >= 3 ? Math.round(floorY(f.z) - RH + 3 - (f.h ?? 0))
+      : species ? Math.round(f.y ?? 0)
+      : Math.round(floorY(f.z) - SH + 2 - (f.h ?? 0) + (f.bob ?? 0))
     uData.set([Math.round(f.x), y, f.dir, f.z], 8 + i * 8)
     uData.set([f.phase ?? 0, f.amp ?? 0.18, Math.round(floorY(f.z)), species], 12 + i * 8)
   })

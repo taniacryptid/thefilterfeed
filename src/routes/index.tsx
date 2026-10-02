@@ -48,7 +48,7 @@ function App() {
           <div className="pixel-frame bg-deep pxshadow p-6 sm:p-8">
             <p className="m-0 font-pixel text-lg text-ink">
               Tip: tap the water to drop food. The cherry barbs snap it up mid-water, the corys sift
-              the sand for whatever sinks. Use the fish buttons in the tank to choose who's swimming.
+              the sand for whatever sinks, and the shrimp pick at it slowly. Use the fish buttons in the tank to choose who's swimming.
             </p>
             <p className="mt-2 mb-0 text-sm leading-relaxed text-inksoft">
               The tank runs entirely on your GPU — every fish, plant, and bubble is drawn per-pixel

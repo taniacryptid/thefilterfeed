@@ -114,7 +114,7 @@ function SiteFooter() {
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 py-8 text-center font-pixel text-sm text-inksoft sm:px-6">
         <div className="pellet-row w-24" aria-hidden="true" />
         <p className="m-0">The Filter Feed — a fed fish is a happy fish.</p>
-        <p className="m-0 text-xs opacity-70">Corydoras and cherry barbs rendered live in WebGPU.</p>
+        <p className="m-0 text-xs opacity-70">Corydoras, cherry barbs and cherry shrimp rendered live in WebGPU.</p>
       </div>
     </footer>
   )
