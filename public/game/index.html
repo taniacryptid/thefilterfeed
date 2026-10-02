@@ -231,7 +231,7 @@ fn lollySample(pf: vec2f, deepc: vec3f) -> vec4f {
   if (L1.z < 0.5) { return vec4f(0.0); }
   let ball = vec2f(L0.x, L0.y);
   let base = vec2f(L1.x, L1.y);
-  var out = vec4f(0.0);
+  var result = vec4f(0.0);
   let pc = pf + 0.5;
   if (pc.y <= base.y + 0.5) {
     let ba = ball - base;
@@ -242,7 +242,7 @@ fn lollySample(pf: vec2f, deepc: vec3f) -> vec4f {
       let side = ba.x * pa.y - ba.y * pa.x;
       var wood = select(hex(0xc89458u), hex(0x7a5230u), side > 0.0);
       if (fract(hh * 9.0) < 0.12) { wood = wood * 0.9; }
-      out = vec4f(wood, 1.0);
+      result = vec4f(wood, 1.0);
     }
   }
   let r = L0.z;
@@ -261,11 +261,11 @@ fn lollySample(pf: vec2f, deepc: vec3f) -> vec4f {
       if (qv.x < -r * 0.2 && qv.y < -r * 0.2 && dist < r * 0.75) { c = mix(c, hex(0xe8d898u), 0.35); }
       if (dist > rr - 1.0) { c = hex(0x3c3012u); }
       else if (qv.y > r * 0.35) { c = c * 0.82; }
-      out = vec4f(c, 1.0);
+      result = vec4f(c, 1.0);
     }
   }
-  if (out.a > 0.0) { out = vec4f(mix(out.rgb, deepc, L0.w * 0.45), 1.0); }
-  return out;
+  if (result.a > 0.0) { result = vec4f(mix(result.rgb, deepc, L0.w * 0.45), 1.0); }
+  return result;
 }
 
 // one clump of grass blades; returns rgb + coverage
